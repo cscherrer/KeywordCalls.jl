@@ -1,14 +1,14 @@
 ```@meta
-CurrentModule = KeywordOrdering
+CurrentModule = KeywordCalls
 ```
 
-# KeywordOrdering
+# KeywordCalls
 
-Documentation for [KeywordOrdering](https://github.com/cscherrer/KeywordOrdering.jl).
+Documentation for [KeywordCalls](https://github.com/cscherrer/KeywordCalls.jl).
 
 ```@index
 ```
 
 ```@autodocs
-Modules = [KeywordOrdering]
+Modules = [KeywordCalls]
 ```

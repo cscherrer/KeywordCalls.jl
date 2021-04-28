@@ -1,16 +1,16 @@
-using KeywordOrdering
+using KeywordCalls
 using Documenter
 
-DocMeta.setdocmeta!(KeywordOrdering, :DocTestSetup, :(using KeywordOrdering); recursive=true)
+DocMeta.setdocmeta!(KeywordCalls, :DocTestSetup, :(using KeywordCalls); recursive=true)
 
 makedocs(;
-    modules=[KeywordOrdering],
+    modules=[KeywordCalls],
     authors="Chad Scherrer <chad.scherrer@gmail.com> and contributors",
-    repo="https://github.com/cscherrer/KeywordOrdering.jl/blob/{commit}{path}#{line}",
-    sitename="KeywordOrdering.jl",
+    repo="https://github.com/cscherrer/KeywordCalls.jl/blob/{commit}{path}#{line}",
+    sitename="KeywordCalls.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://cscherrer.github.io/KeywordOrdering.jl",
+        canonical="https://cscherrer.github.io/KeywordCalls.jl",
         assets=String[],
     ),
     pages=[
@@ -19,5 +19,5 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/cscherrer/KeywordOrdering.jl",
+    repo="github.com/cscherrer/KeywordCalls.jl",
 )

@@ -1,6 +1,6 @@
-using KeywordOrdering
+using KeywordCalls
 using Test
 
-@testset "KeywordOrdering.jl" begin
+@testset "KeywordCalls.jl" begin
     # Write your tests here.
 end
