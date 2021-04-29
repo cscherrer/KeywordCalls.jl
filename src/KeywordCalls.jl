@@ -43,6 +43,7 @@ function _kwcall(call)
         :($f($(args...))) => begin
             π = invperm(sortperm(collect(args)))
             sargs = Tuple(sort(args))
+            targs = Tuple(args)
             quote
                 KeywordCalls.baseperm[($f, $sargs)] = $π
 
@@ -50,7 +51,7 @@ function _kwcall(call)
 
                 $f(; kwargs...) = $f(NamedTuple(kwargs))
 
-                $f($(args...)) = $f(NamedTuple{$args}($args))
+                $f($(args...)) = $f(NamedTuple{$targs}($(args...)))
             end
         end 
         _ => @error "`@kwcall` declaration must be of the form `@kwcall f(b,a,d)`"
