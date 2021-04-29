@@ -4,7 +4,6 @@ letters = Symbol.('a':'z')
 
 for n in 1:26
     fkeys = Tuple(letters[1:n])
-    rkeys = reverse(fkeys)
 
     @eval begin
         f(nt::NamedTuple{$fkeys}) = sum(values(nt))
