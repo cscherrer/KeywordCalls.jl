@@ -5,8 +5,6 @@
 [![Build Status](https://github.com/cscherrer/KeywordCalls.jl/workflows/CI/badge.svg)](https://github.com/cscherrer/KeywordCalls.jl/actions)
 [![Coverage](https://codecov.io/gh/cscherrer/KeywordCalls.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/cscherrer/KeywordCalls.jl)
 
-**WORK IN PROGRESS**
-
 KeywordCalls allows declarations
 
 ```julia
