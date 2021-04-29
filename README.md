@@ -82,54 +82,14 @@ julia> methods(f)
 [2] f(nt::NamedTuple{(:a,), T} where T<:Tuple) in Main at REPL[27]:5
 [3] f(nt::NamedTuple{(:a, :b), T} where T<:Tuple) in Main at REPL[27]:5
 [4] f(nt::NamedTuple{(:a, :b, :c), T} where T<:Tuple) in Main at REPL[27]:5
-[5] f(nt::NamedTuple{(:a, :b, :c, :d), T} where T<:Tuple) in Main at REPL[27]:5
-[6] f(nt::NamedTuple{(:a, :b, :c, :d, :e), T} where T<:Tuple) in Main at REPL[27]:5
-[7] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f), T} where T<:Tuple) in Main at REPL[27]:5
-[8] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g), T} where T<:Tuple) in Main at REPL[27]:5
-[9] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h), T} where T<:Tuple) in Main at REPL[27]:5
-[10] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i), T} where T<:Tuple) in Main at REPL[27]:5
-[11] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j), T} where T<:Tuple) in Main at REPL[27]:5
-[12] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k), T} where T<:Tuple) in Main at REPL[27]:5
-[13] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l), T} where T<:Tuple) in Main at REPL[27]:5
-[14] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m), T} where T<:Tuple) in Main at REPL[27]:5
-[15] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n), T} where T<:Tuple) in Main at REPL[27]:5
-[16] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o), T} where T<:Tuple) in Main at REPL[27]:5
-[17] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p), T} where T<:Tuple) in Main at REPL[27]:5
-[18] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p, :q), T} where T<:Tuple) in Main at REPL[27]:5
-[19] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p, :q, :r), T} where T<:Tuple) in Main at REPL[27]:5
-[20] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p, :q, :r, :s), T} where T<:Tuple) in Main at REPL[27]:5
-[21] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p, :q, :r, :s, :t), T} where T<:Tuple) in Main at REPL[27]:5
-[22] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p, :q, :r, :s, :t, :u), T} where T<:Tuple) in Main at REPL[27]:5
-[23] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p, :q, :r, :s, :t, :u, :v), T} where T<:Tuple) in Main at REPL[27]:5
-[24] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p, :q, :r, :s, :t, :u, :v, :w), T} where T<:Tuple) in Main at REPL[27]:5
-[25] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p, :q, :r, :s, :t, :u, :v, :w, :x), T} where T<:Tuple) in Main at REPL[27]:5
+⋮
 [26] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p, :q, :r, :s, :t, :u, :v, :w, :x, :y), T} where T<:Tuple) in Main at REPL[27]:5
 [27] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p, :q, :r, :s, :t, :u, :v, :w, :x, :y, :z), T} where T<:Tuple) in Main at REPL[27]:5
 [28] f(nt::NamedTuple) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:50
 [29] f(a) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
 [30] f(a, b) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
 [31] f(a, b, c) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-[32] f(a, b, c, d) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-[33] f(a, b, c, d, e) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-[34] f(a, b, c, d, e, f) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-[35] f(a, b, c, d, e, f, g) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-[36] f(a, b, c, d, e, f, g, h) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-[37] f(a, b, c, d, e, f, g, h, i) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-[38] f(a, b, c, d, e, f, g, h, i, j) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-[39] f(a, b, c, d, e, f, g, h, i, j, k) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-[40] f(a, b, c, d, e, f, g, h, i, j, k, l) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-[41] f(a, b, c, d, e, f, g, h, i, j, k, l, m) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-[42] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-[43] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-[44] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-[45] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-[46] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-[47] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-[48] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-[49] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-[50] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-[51] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-[52] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+⋮
 [53] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
 [54] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
 ```
