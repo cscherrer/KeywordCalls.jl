@@ -47,6 +47,10 @@ function _kwcall(call)
                 KeywordCalls.baseperm[($f, $sargs)] = $π
 
                 $f(nt::NamedTuple) = kwcall($f, nt)
+
+                $f(; kwargs...) = $f(NamedTuple(kwargs))
+
+                $f($(args...)) = $f(NamedTuple{$args}($args))
             end
         end 
         _ => @error "`@kwcall` declaration must be of the form `@kwcall f(b,a,d)`"
