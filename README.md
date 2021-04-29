@@ -19,28 +19,44 @@ with the result that
 For example,
 ```julia
 # Define a function on a NamedTuple, using your preferred ordering
-julia> f(nt::NamedTuple{(:c,:b,:a)}) = nt.a + nt.b + nt.c
+julia> f(nt::NamedTuple{(:c,:b,:a)}) = nt.a^3 + nt.b^2 + nt.c
 f (generic function with 1 method)
 
 # Declare f to use KeywordCalls
 julia> @kwcall f(c,b,a)
-f (generic function with 2 methods)
+f (generic function with 4 methods)
 
-# Now other orderings work too
+# Here are the 4 methods
+julia> methods(f)
+# 4 methods for generic function "f":
+[1] f(; kwargs...) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:52
+[2] f(nt::NamedTuple{(:c, :b, :a), T} where T<:Tuple) in Main at REPL[2]:1
+[3] f(nt::NamedTuple) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:50
+[4] f(c, b, a) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+
+# Now other orderings work too. Here's passing a `NamedTuple`:
 julia> f((a=1,b=2,c=3))
-6
+8
+
+# Or kwargs...
+julia> f(a=1,b=2,c=3)
+8
+
+# Unnamed arguments expect the declared `(c,b,a)` ordering:
+julia> f(1,2,3)
+32
 
 julia> using BenchmarkTools
 
 # Already pretty fast
 julia> @btime f((a=1,b=2,c=3))
   1.172 ns (0 allocations: 0 bytes)
-6
+8
 
 # But not yet perfect, hopefully we can find a way to shave off that last nanosecond :)
 julia> @btime f((c=3,b=2,a=1))
   0.020 ns (0 allocations: 0 bytes)
-6
+8
 ```
 
 
