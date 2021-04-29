@@ -10,6 +10,9 @@ NestedTuples = "a734d2a7-8d68-409b-9419-626914d4061d"
 
 [compat]
 julia = "1"
+GeneralizedGenerated = "0.3"
+MLStyle = "0.4"
+NestedTuples = "0.3"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
