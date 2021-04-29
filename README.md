@@ -32,13 +32,18 @@ julia> f((a=1,b=2,c=3))
 
 julia> using BenchmarkTools
 
-# And it's fast! :)
+# Already pretty fast
 julia> @btime f((a=1,b=2,c=3))
   1.172 ns (0 allocations: 0 bytes)
+6
+
+# But not yet perfect, hopefully we can find a way to shave off that last nanosecond :)
+julia> @btime f((c=3,b=2,a=1))
+  0.020 ns (0 allocations: 0 bytes)
 6
 ```
 
 
 Multiple declarations are allowed, as long as the set of names is distinct for each declaration of a given function.
 
-Most of the heavy lifting is done using NestedTuples.jl and GeneralizedGenerated.jl. By taking advantage of type-level information for named tuples, we can make all of this work at compile time, so there should be no run-time overhead.
+Most of the heavy lifting is done using NestedTuples.jl and GeneralizedGenerated.jl. By taking advantage of type-level information for named tuples, we can make all of this work at compile time.
