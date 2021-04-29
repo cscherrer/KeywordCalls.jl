@@ -13,21 +13,27 @@ Compute the permutation required to get `keys` to the ordering declared by `@kwc
 """
 function kwcallperm(f, keys)
     sortedkeys = Tuple(sort(collect(keys)))
+
+    # The permutation to get from sorted order to the preferred order
     π = baseperm[(f, sortedkeys)]
+
+    # The permutation to get from the call order to the sorted order
     σ = sortperm(collect(keys))
+
+    # Composing the permutations
     return σ[π]
 end
 
-"""
-    baseperm(f, ::Val)
-
-
-"""
+# `baseperm[(f, sortedargs::Tuple{Symbol})]` gives the permutation 
+# from sorted arguments to the ordering declared with @kwcall 
 const baseperm = Dict()
 
+"""
+    @kwcall f(b,a,d)
 
-
-
+Declares that any call `f(::NamedTuple{N})` with `sort(N) == (:a,:b,:d)`
+should be dispatched to the method already defined on `f(::NamedTuple{(:b,:a,:d)})`
+"""
 macro kwcall(call)
     esc(_kwcall(call))
 end
@@ -47,7 +53,11 @@ function _kwcall(call)
     end
 end
 
+"""
+    kwcall(f, ::NamedTuple)
 
+Dispatch to the permuted `f(::NamedTuple)` call declared using `@kwcall`
+"""
 @gg function kwcall(::F, nt::NamedTuple{N}) where {F,N}
     f = F.instance
     π = Tuple(kwcallperm(f, N))
