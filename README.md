@@ -155,3 +155,7 @@ end
 
 times = runbenchmark()
 ```
+
+Here's the result:
+
+![benchmarks](https://user-images.githubusercontent.com/1184449/116616679-d2abef00-a8f1-11eb-9507-0af267fa37cb.png)
