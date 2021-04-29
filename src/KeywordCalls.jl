@@ -2,6 +2,31 @@ module KeywordCalls
 
 using NestedTuples
 using MLStyle: @match
+using GeneralizedGenerated
+
+export kwcall, @kwcall
+
+"""
+    kwcallperm(f, keys::Tuple{Symbol})
+
+Compute the permutation required to get `keys` to the ordering declared by `@kwcall`
+"""
+function kwcallperm(f, keys)
+    sortedkeys = Tuple(sort(collect(keys)))
+    π = baseperm[(f, sortedkeys)]
+    σ = sortperm(collect(keys))
+    return σ[π]
+end
+
+"""
+    baseperm(f, ::Val)
+
+
+"""
+const baseperm = Dict()
+
+
+
 
 macro kwcall(call)
     esc(_kwcall(call))
@@ -9,71 +34,30 @@ end
 
 function _kwcall(call)
     @match call begin
-        $f($(...)) => begin
+        :($f($(args...))) => begin
+            π = invperm(sortperm(collect(args)))
+            sargs = Tuple(sort(args))
             quote
-                getCalls($f, 
+                KeywordCalls.baseperm[($f, $sargs)] = $π
 
-                $f(; kwargs...) = 
+                $f(nt::NamedTuple) = kwcall($f, nt)
             end
         end 
+        _ => @error "`@kwcall` declaration must be of the form `@kwcall f(b,a,d)`"
     end
 end
 
-function f end
 
-function mysort(::typeof(f), 
-
-@generated function paramsort(nt::NamedTuple{K,V}) where {K,V}
-    s = _paramsort(schema(nt))
-    ℓ = Lenses(lenses(s))
-    return :(leaf_setter($s)($ℓ(nt)...))
+@gg function kwcall(::F, nt::NamedTuple{N}) where {F,N}
+    f = F.instance
+    π = Tuple(kwcallperm(f, N))
+    Nπ = Tuple((N[p] for p in π))
+    quote
+        v = values(nt)
+        valind(n) = @inbounds v[n]
+        $f(NamedTuple{$Nπ}(Tuple(valind.($π))))
+    end
 end
 
-_paramsort(nt::NamedTuple{(), Tuple{}}) = nt
 
-@gg function ntsortperm(nt::NamedTuple{N,T}) where {N,T}
-    π = sortperm(collect(N))
-    π
-end
-
-function ntpermute(nt::NamedTuple{N,T}, π::Vector{Int}) where {N,T}
-    newnames = N[π]
-    newvals = values(nt)[π]
-    NamedTuple{N[π]}(values(nt)[π])
-end
-
-function _argsort(nt::NamedTuple{K,V}) where {K,V}
-    # Assign each symbol a default rank
-    π = sortperm(collect(K))
-    k = K[π]
-
-
-    v = @inbounds (_paramsort.(values(nt)))[π]
-    return namedtuple(k)(v)
-end
-
-_paramsort(t::Tuple) = _paramsort.(t)
-_paramsort(x) = x
-
-
-@gg function kwcall(f, args::NamedTuple{N,T}) where {N,T}
-    
-end
-
-mysort(f, keysort(args))
-
-
-if !isempty(p)
-    # e.g. Normal(μ,σ) = Normal(;μ=μ, σ=σ)
-    # Requires Julia 1.5
-    pnames = QuoteNode.(p)
-    # push!(q.args, :($μ($(p...)) = $μ(;$(p...))))
-    push!(q.args, :($μ($(p...)) = $μ(;$(p...))))
-end
-
-# Write your package code here.
-
-
-myorder(
-
-end
+end # module
