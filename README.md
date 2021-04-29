@@ -45,18 +45,6 @@ julia> f(a=1,b=2,c=3)
 # Unnamed arguments expect the declared `(c,b,a)` ordering:
 julia> f(1,2,3)
 32
-
-julia> using BenchmarkTools
-
-# Already pretty fast
-julia> @btime f((a=1,b=2,c=3))
-  1.172 ns (0 allocations: 0 bytes)
-8
-
-# But not yet perfect, hopefully we can find a way to shave off that last nanosecond :)
-julia> @btime f((c=3,b=2,a=1))
-  0.020 ns (0 allocations: 0 bytes)
-8
 ```
 
 
@@ -69,3 +57,101 @@ Most of the heavy lifting is done using NestedTuples.jl and GeneralizedGenerated
 KeywordCalls tries to push as much of the work as possible to the compiler, to make repeated run-time calls fast. But there's no free lunch, you either pay now or pay later.
 
 If you'd rather avoid the compilation time (at the cost of some runtime overhead), you should try [KeywordDispatch.jl](https://github.com/simonbyrne/KeywordDispatch.jl).
+
+## Benchmarks
+
+Let's define a method for each "alphabet prefix":
+```julia
+letters = Symbol.('a':'z')
+
+for n in 1:26
+    fkeys = Tuple(letters[1:n])
+
+    @eval begin
+        f(nt::NamedTuple{$fkeys}) = sum(values(nt))
+        $(KeywordCalls._kwcall(:(f($(fkeys...)))))
+    end
+end
+```
+
+So now `f`'s methods look like this:
+```julia
+julia> methods(f)
+# 54 methods for generic function "f":
+[1] f(; kwargs...) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:52
+[2] f(nt::NamedTuple{(:a,), T} where T<:Tuple) in Main at REPL[27]:5
+[3] f(nt::NamedTuple{(:a, :b), T} where T<:Tuple) in Main at REPL[27]:5
+[4] f(nt::NamedTuple{(:a, :b, :c), T} where T<:Tuple) in Main at REPL[27]:5
+[5] f(nt::NamedTuple{(:a, :b, :c, :d), T} where T<:Tuple) in Main at REPL[27]:5
+[6] f(nt::NamedTuple{(:a, :b, :c, :d, :e), T} where T<:Tuple) in Main at REPL[27]:5
+[7] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f), T} where T<:Tuple) in Main at REPL[27]:5
+[8] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g), T} where T<:Tuple) in Main at REPL[27]:5
+[9] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h), T} where T<:Tuple) in Main at REPL[27]:5
+[10] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i), T} where T<:Tuple) in Main at REPL[27]:5
+[11] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j), T} where T<:Tuple) in Main at REPL[27]:5
+[12] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k), T} where T<:Tuple) in Main at REPL[27]:5
+[13] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l), T} where T<:Tuple) in Main at REPL[27]:5
+[14] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m), T} where T<:Tuple) in Main at REPL[27]:5
+[15] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n), T} where T<:Tuple) in Main at REPL[27]:5
+[16] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o), T} where T<:Tuple) in Main at REPL[27]:5
+[17] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p), T} where T<:Tuple) in Main at REPL[27]:5
+[18] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p, :q), T} where T<:Tuple) in Main at REPL[27]:5
+[19] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p, :q, :r), T} where T<:Tuple) in Main at REPL[27]:5
+[20] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p, :q, :r, :s), T} where T<:Tuple) in Main at REPL[27]:5
+[21] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p, :q, :r, :s, :t), T} where T<:Tuple) in Main at REPL[27]:5
+[22] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p, :q, :r, :s, :t, :u), T} where T<:Tuple) in Main at REPL[27]:5
+[23] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p, :q, :r, :s, :t, :u, :v), T} where T<:Tuple) in Main at REPL[27]:5
+[24] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p, :q, :r, :s, :t, :u, :v, :w), T} where T<:Tuple) in Main at REPL[27]:5
+[25] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p, :q, :r, :s, :t, :u, :v, :w, :x), T} where T<:Tuple) in Main at REPL[27]:5
+[26] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p, :q, :r, :s, :t, :u, :v, :w, :x, :y), T} where T<:Tuple) in Main at REPL[27]:5
+[27] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p, :q, :r, :s, :t, :u, :v, :w, :x, :y, :z), T} where T<:Tuple) in Main at REPL[27]:5
+[28] f(nt::NamedTuple) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:50
+[29] f(a) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[30] f(a, b) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[31] f(a, b, c) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[32] f(a, b, c, d) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[33] f(a, b, c, d, e) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[34] f(a, b, c, d, e, f) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[35] f(a, b, c, d, e, f, g) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[36] f(a, b, c, d, e, f, g, h) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[37] f(a, b, c, d, e, f, g, h, i) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[38] f(a, b, c, d, e, f, g, h, i, j) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[39] f(a, b, c, d, e, f, g, h, i, j, k) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[40] f(a, b, c, d, e, f, g, h, i, j, k, l) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[41] f(a, b, c, d, e, f, g, h, i, j, k, l, m) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[42] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[43] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[44] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[45] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[46] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[47] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[48] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[49] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[50] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[51] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[52] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[53] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+[54] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
+```
+
+That method 28 is the dispatch that requires permutation; it's called for any named tuple without an explicit method.
+
+Now we can benchmark:
+```julia
+function runbenchmark()
+    times = Matrix{Float64}(undef, 26,2)
+    for n in 1:26
+        fkeys = Tuple(letters[1:n])
+        rkeys = reverse(fkeys)
+        
+        nt = NamedTuple{fkeys}(1:n)
+        rnt = NamedTuple{rkeys}(n:-1:1)
+
+        times[n,1] = @belapsed($f($nt))
+        times[n,2] = @belapsed($f($rnt))
+    end
+    return times
+end
+
+times = runbenchmark()
+```
