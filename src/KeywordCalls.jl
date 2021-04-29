@@ -49,7 +49,7 @@ function _kwcall(call)
 
                 $f(nt::NamedTuple) = kwcall($f, nt)
 
-                $f(; kwargs...) = $f(NamedTuple(kwargs))
+                $f(; kwargs...) = $f(kwargs.data)
 
                 $f($(args...)) = $f(NamedTuple{$targs}($(args...)))
             end
