@@ -9,6 +9,7 @@ MLStyle = "d8e11817-5142-5d16-987a-aa16d5891078"
 NestedTuples = "a734d2a7-8d68-409b-9419-626914d4061d"
 
 [compat]
+NestedTuples = "0.3"
 julia = "1"
 
 [extras]
