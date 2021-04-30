@@ -63,7 +63,17 @@ end
 
 Dispatch to the permuted `f(::NamedTuple)` call declared using `@kwcall`
 """
-@gg function kwcall(::F, nt::NamedTuple{N}) where {F,N}
+@gg function kwcall(::Type{F}, nt::NamedTuple{N}) where {F,N}
+    π = Tuple(kwcallperm(F, N))
+    Nπ = Tuple((N[p] for p in π))
+    quote
+        v = values(nt)
+        valind(n) = @inbounds v[n]
+        $F(NamedTuple{$Nπ}(Tuple(valind.($π))))
+    end
+end
+
+@gg function kwcall(::F, nt::NamedTuple{N}) where {F<:Function,N}
     f = F.instance
     π = Tuple(kwcallperm(f, N))
     Nπ = Tuple((N[p] for p in π))
@@ -73,6 +83,5 @@ Dispatch to the permuted `f(::NamedTuple)` call declared using `@kwcall`
         $f(NamedTuple{$Nπ}(Tuple(valind.($π))))
     end
 end
-
 
 end # module
