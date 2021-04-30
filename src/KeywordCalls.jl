@@ -51,7 +51,7 @@ function _kwcall(call)
 
                 $f(; kwargs...) = $f(kwargs.data)
 
-                $f($(args...)) = $f(NamedTuple{$targs}($(args...)))
+                # $f($(args...)) = $f(NamedTuple{$targs}($(args...)))
             end
         end 
         _ => @error "`@kwcall` declaration must be of the form `@kwcall f(b,a,d)`"

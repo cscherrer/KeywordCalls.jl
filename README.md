@@ -13,8 +13,9 @@ KeywordCalls allows declarations
 
 with the result that
 
-- Calls to `f(x,y,z)` (without keywords) are dispatched to `f(c=x, b=y, a=z)`
-- Call _with_ keywords, e.g. `f(a=z, b=y, c=x)` are put back in the declared "preferred ordering", again dispatching to `f(c=x, b=y, a=z)`
+- Calls with named tuples, e.g. `f((a=z, b=y, c=x))`, are put back in the declared "preferred ordering", dispatching to `f((c=x, b=y, a=z))`
+- Call with keywords, e.g. `f(a=z, b=y, c=x)` dispatched to the corresponding named tuple, `f((a=z, b=y, c=x))`, in turn dispatching to preferred ordering.
+- 
 
 For example,
 ```julia
@@ -24,27 +25,22 @@ f (generic function with 1 method)
 
 # Declare f to use KeywordCalls
 julia> @kwcall f(c,b,a)
-f (generic function with 4 methods)
+f (generic function with 3 methods)
 
-# Here are the 4 methods
+# Here are the 3 methods
 julia> methods(f)
-# 4 methods for generic function "f":
+# 3 methods for generic function "f":
 [1] f(; kwargs...) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:52
 [2] f(nt::NamedTuple{(:c, :b, :a), T} where T<:Tuple) in Main at REPL[2]:1
 [3] f(nt::NamedTuple) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:50
-[4] f(c, b, a) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
 
 # Now other orderings work too. Here's passing a `NamedTuple`:
 julia> f((a=1,b=2,c=3))
 8
 
-# Or kwargs...
+# Or kwargs:
 julia> f(a=1,b=2,c=3)
 8
-
-# Unnamed arguments expect the declared `(c,b,a)` ordering:
-julia> f(1,2,3)
-32
 ```
 
 
@@ -77,21 +73,21 @@ end
 So now `f`'s methods look like this:
 ```julia
 julia> methods(f)
-# 54 methods for generic function "f":
+# 28 methods for generic function "f":
 [1] f(; kwargs...) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:52
-[2] f(nt::NamedTuple{(:a,), T} where T<:Tuple) in Main at REPL[27]:5
-[3] f(nt::NamedTuple{(:a, :b), T} where T<:Tuple) in Main at REPL[27]:5
-[4] f(nt::NamedTuple{(:a, :b, :c), T} where T<:Tuple) in Main at REPL[27]:5
+[2] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g), T} where T<:Tuple) in Main at REPL[3]:5
+[3] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f), T} where T<:Tuple) in Main at REPL[3]:5
+[4] f(nt::NamedTuple{(:a, :b, :c, :d, :e), T} where T<:Tuple) in Main at REPL[3]:5
+[5] f(nt::NamedTuple{(:a, :b, :c, :d), T} where T<:Tuple) in Main at REPL[3]:5
+[6] f(nt::NamedTuple{(:a, :b, :c), T} where T<:Tuple) in Main at REPL[3]:5
+[7] f(nt::NamedTuple{(:a, :b), T} where T<:Tuple) in Main at REPL[3]:5
+[8] f(nt::NamedTuple{(:a,), T} where T<:Tuple) in Main at REPL[3]:5
+[9] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h), T} where T<:Tuple) in Main at REPL[3]:5
+[10] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i), T} where T<:Tuple) in Main at REPL[3]:5
 ⋮
-[26] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p, :q, :r, :s, :t, :u, :v, :w, :x, :y), T} where T<:Tuple) in Main at REPL[27]:5
-[27] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p, :q, :r, :s, :t, :u, :v, :w, :x, :y, :z), T} where T<:Tuple) in Main at REPL[27]:5
+[26] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p, :q, :r, :s, :t, :u, :v, :w, :x, :y), T} where T<:Tuple) in Main at REPL[3]:5
+[27] f(nt::NamedTuple{(:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :n, :o, :p, :q, :r, :s, :t, :u, :v, :w, :x, :y, :z), T} where T<:Tuple) in Main at REPL[3]:5
 [28] f(nt::NamedTuple) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:50
-[29] f(a) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-[30] f(a, b) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-[31] f(a, b, c) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-⋮
-[53] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
-[54] f(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:54
 ```
 
 That method 28 is the dispatch that requires permutation; it's called for any named tuple without an explicit method.
