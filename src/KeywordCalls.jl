@@ -44,10 +44,11 @@ function _kwcall(call)
             π = invperm(sortperm(collect(args)))
             sargs = Tuple(sort(args))
             targs = Tuple(args)
+            tf = to_type(f)
             quote
                 KeywordCalls.baseperm[($f, $sargs)] = $π
 
-                $f(nt::NamedTuple) = kwcall($f, nt)
+                $f(nt::NamedTuple) = kwcall($tf, nt)
 
                 $f(; kwargs...) = $f(kwargs.data)
 
@@ -63,8 +64,8 @@ end
 
 Dispatch to the permuted `f(::NamedTuple)` call declared using `@kwcall`
 """
-@gg function kwcall(::F, nt::NamedTuple{N}) where {F,N}
-    f = F.instance
+@gg function kwcall(::Type{TF}, nt::NamedTuple{N}) where {TF,N}
+    f = from_type(TF)
     π = Tuple(kwcallperm(f, N))
     Nπ = Tuple((N[p] for p in π))
     quote
