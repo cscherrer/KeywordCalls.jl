@@ -43,6 +43,23 @@ julia> f(a=1,b=2,c=3)
 8
 ```
 
+You can also use it with constructors:
+```julia
+julia> using KeywordCalls
+
+julia> struct Foo{N,T}
+           nt::NamedTuple{N,T}
+       end
+
+julia> Foo(nt::NamedTuple{(:a,:b),T}) where {T} = Foo{(:a,:b), T}(nt)
+Foo
+
+julia> @kwcall Foo(a,b)
+Foo
+
+julia> Foo((b=1,a=2))
+Foo{(:a, :b), Tuple{Int64, Int64}}((a = 2, b = 1))
+```
 
 Multiple declarations are allowed, as long as the set of names is distinct for each declaration of a given function.
 
