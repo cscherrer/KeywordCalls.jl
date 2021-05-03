@@ -1,0 +1,6 @@
+name = "Precompile1"
+uuid = "72bf0cd0-9e34-4a08-9077-c4f6d7f3b76b"
+version = "0.1.0"
+
+[deps]
+KeywordCalls = "4d827475-d3e4-43d6-abe3-9688362ede9f"
