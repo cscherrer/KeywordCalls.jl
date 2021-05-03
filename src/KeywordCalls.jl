@@ -24,9 +24,19 @@ function kwcallperm(f, keys)
     return σ[π]
 end
 
-# `baseperm[(f, sortedargs::Tuple{Symbol})]` gives the permutation 
-# from sorted arguments to the ordering declared with @kwcall 
+# `baseperm[(f, sortedargs::Tuple{Symbol})]` gives the permutation
+# from sorted arguments to the ordering declared with @kwcall
 const baseperm = Dict()
+
+# can't use gensym() here, as this can lead to collisions because of precompilation
+# so we use a long enough random string (130+ bits of entropy)
+const KEYWORD_CALLS = Symbol("##KeywordCalls-1tqEpmTrQf0b4aJUZscoCc")
+
+function register_calls!(list)
+    for (f, sargs, π) in list
+        baseperm[(f, sargs)] = π
+    end
+end
 
 """
     @kwcall f(b,a,d)
@@ -35,17 +45,32 @@ Declares that any call `f(::NamedTuple{N})` with `sort(N) == (:a,:b,:d)`
 should be dispatched to the method already defined on `f(::NamedTuple{(:b,:a,:d)})`
 """
 macro kwcall(call)
-    esc(_kwcall(call))
+    if !isdefined(__module__, KEYWORD_CALLS)
+        @eval __module__ module $KEYWORD_CALLS
+            # Credit to Takafumi Arakaki for the idea of creating a submodule
+            # within modules using KeywordCalls in order to be able to define
+            # an `__init__` function which does the registration
+            # (as we can't directly create/modify `__init__` for the given module).
+            const perm = []
+            __init__() = $register_calls!(perm)
+        end
+    end
+    mod = getfield(__module__, KEYWORD_CALLS)
+    esc(_kwcall(mod, call))
 end
 
-function _kwcall(call)
+function _kwcall(mod::Module, call)
     @match call begin
         :($f($(args...))) => begin
             π = invperm(sortperm(collect(args)))
             sargs = Tuple(sort(args))
             targs = Tuple(args)
             quote
+                # we register at precompilation time in case it's needed...
                 KeywordCalls.baseperm[($f, $sargs)] = $π
+                # ... but at module __init__ time, KeywordCalls.baseperm is emptied, so we
+                # need to repopulate it, of which $mod takes care
+                push!($mod.perm, ($f, $sargs, $π))
 
                 $f(nt::NamedTuple) = kwcall($f, nt)
 
