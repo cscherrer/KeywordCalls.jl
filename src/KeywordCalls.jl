@@ -27,4 +27,11 @@ macro kwcall(ex)
     end
 end
 
+struct Foo{N,T} <: Bar
+    nt::NamedTuple{N,T}
+end
+
+
+Foo(nt::NamedTuple{(:μ,:σ),T}) where {T} = Foo{(:μ,:σ), T}(nt)
+
 end
