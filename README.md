@@ -5,71 +5,73 @@
 [![Build Status](https://github.com/cscherrer/KeywordCalls.jl/workflows/CI/badge.svg)](https://github.com/cscherrer/KeywordCalls.jl/actions)
 [![Coverage](https://codecov.io/gh/cscherrer/KeywordCalls.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/cscherrer/KeywordCalls.jl)
 
-KeywordCalls allows declarations
 
+In Julia, the named tuples `(a=1, b=2)` and `(b=2, a=1)` are distinct. In some cases, it's convenient to define a method for each _set_ of names, rather than each particular ordering. 
+
+KeywordCalls.jl lets us do this, and allows specification of a "preferred ordering" for each set of arguments.
+
+## `@kwcall`
+
+If we define
 ```julia
-@kwcall f(c,b,a)
+f(nt::NamedTuple{(:b, :a)}) = println("Calling f(b = ", nt.b,",a = ", nt.a, ")")
+
+@kwcall f(b,a)
 ```
 
-with the result that
+Then
 
-- Calls with named tuples, e.g. `f((a=z, b=y, c=x))`, are put back in the declared "preferred ordering", dispatching to `f((c=x, b=y, a=z))`
-- Call with keywords, e.g. `f(a=z, b=y, c=x)` dispatched to the corresponding named tuple, `f((a=z, b=y, c=x))`, in turn dispatching to preferred ordering.
-- 
-
-For example,
 ```julia
-# Define a function on a NamedTuple, using your preferred ordering
-julia> f(nt::NamedTuple{(:c,:b,:a)}) = nt.a^3 + nt.b^2 + nt.c
-f (generic function with 1 method)
+julia> f(a=1,b=2)
+Calling f(b = 2,a = 1)
 
-# Declare f to use KeywordCalls
-julia> @kwcall f(c,b,a)
-f (generic function with 3 methods)
+julia> f(b=2,a=1)
+Calling f(b = 2,a = 1)
+```
 
-# Here are the 3 methods
-julia> methods(f)
-# 3 methods for generic function "f":
-[1] f(; kwargs...) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:52
-[2] f(nt::NamedTuple{(:c, :b, :a), T} where T<:Tuple) in Main at REPL[2]:1
-[3] f(nt::NamedTuple) in Main at /home/chad/git/KeywordCalls/src/KeywordCalls.jl:50
+We can define a new method for any set of arguments we like. If (after the above) we also define
 
-# Now other orderings work too. Here's passing a `NamedTuple`:
-julia> f((a=1,b=2,c=3))
-8
+```julia
+f(nt::NamedTuple{(:c, :a, :b)}) = println("The sum is ", sum(values(nt)))
 
-# Or kwargs:
+@kwcall f(c,a,b)
+```
+
+then
+
+```julia
 julia> f(a=1,b=2,c=3)
-8
+The sum is 6
 ```
 
-You can also use it with constructors:
+## `kwstruct`
+
+KeywordCalls is especially powerful when used for structs. If you have
 ```julia
-julia> using KeywordCalls
-
-julia> struct Foo{N,T}
-           nt::NamedTuple{N,T}
-       end
-
-julia> Foo(nt::NamedTuple{(:a,:b),T}) where {T} = Foo{(:a,:b), T}(nt)
-Foo
-
-julia> @kwcall Foo(a,b)
-Foo
-
-julia> Foo((b=1,a=2))
-Foo{(:a, :b), Tuple{Int64, Int64}}((a = 2, b = 1))
+Foo{N,T} [<: SomeAbstractTypeIfYouLike]
+    someFieldName :: NamedTuple{N,T}
+end
 ```
 
-Multiple declarations are allowed, as long as the set of names is distinct for each declaration of a given function.
+then
 
-Most of the heavy lifting is done using NestedTuples.jl and GeneralizedGenerated.jl. By taking advantage of type-level information for named tuples, we can make all of this work at compile time.
+```julia
+julia> @kwstruct Foo(μ,σ)
+Foo
+
+julia> Foo(σ=2,μ=4)
+Foo{(:μ, :σ), Tuple{Int64, Int64}}((μ = 4, σ = 2))
+```
+
+In [MeasureTheory.jl](https://github.com/cscherrer/MeasureTheory.jl), we use this approach to allow multiple parameterizations of a given distribution.
+
+
 
 ## Limitations
 
 KeywordCalls tries to push as much of the work as possible to the compiler, to make repeated run-time calls fast. But there's no free lunch, you either pay now or pay later.
 
-If you'd rather avoid the compilation time (at the cost of some runtime overhead), you should try [KeywordDispatch.jl](https://github.com/simonbyrne/KeywordDispatch.jl).
+If you'd rather avoid the compilation time (at the cost of some runtime overhead), you might try [KeywordDispatch.jl](https://github.com/simonbyrne/KeywordDispatch.jl).
 
 ## Benchmarks
 
