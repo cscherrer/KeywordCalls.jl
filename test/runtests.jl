@@ -8,9 +8,7 @@ struct Foo{N,T}
     nt::NamedTuple{N,T}
 end
 
-Foo(nt::NamedTuple{(:a,:b),T}) where {T} = Foo{(:a,:b), T}(nt)
-
-@kwcall Foo(a,b)
+@kwstruct Foo(a,b)
 
 @testset "KeywordCalls.jl" begin
     @testset "Functions" begin

@@ -23,14 +23,13 @@ function _kwcall(ex)
     @assert Meta.isexpr(ex, :call)
     f = ex.args[1]
     args = ex.args[2:end]
-    qargs = esc.(args)
     f, args, sorted_args = esc(f), QuoteNode.(args), QuoteNode.(sort(args))
     q = quote
         KeywordCalls._call_in_default_order(::typeof($f), nt::NamedTuple{($(sorted_args...),)}) = $f(NamedTuple{($(args...),)}(nt))
         $f(nt::NamedTuple) = KeywordCalls._call_in_default_order($f, _sort(nt))
         $f(; kw...) = $f(NamedTuple(kw))
     end
-    return (f=f, args=args, qargs=qargs, sorted_args=sorted_args, q=q)
+    return (f=f, args=args, sorted_args=sorted_args, q=q)
 end
 
 export @kwstruct 
@@ -50,8 +49,8 @@ Note that this assumes existence of a `Foo` struct of the form
 """
 macro kwstruct(ex)
     setup = _kwcall(ex)
-    (f, qargs, q) = setup.f, setup.qargs, setup.q
-    push!(q.args, :($f(nt::NamedTuple{($(qargs...),),T}) where {T} = $f{($(qargs...),), T}(nt)))
+    (f, args, q) = setup.f, setup.args, setup.q
+    push!(q.args, :($f(nt::NamedTuple{($(args...),),T}) where {T} = $f{($(args...),), T}(nt)))
 
     return q
 end
