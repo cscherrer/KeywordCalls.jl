@@ -6,6 +6,7 @@ export @kwcall
 
 function _call_in_default_order end
 
+# Thanks to @simeonschaub for this implementation 
 macro kwcall(ex)
     @assert Meta.isexpr(ex, :call)
     f, args... = ex.args
