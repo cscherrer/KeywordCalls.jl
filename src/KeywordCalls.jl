@@ -48,6 +48,10 @@ Note that this assumes existence of a `Foo` struct of the form
     end
 """
 macro kwstruct(ex)
+    _kwstruct(ex)
+end
+
+function _kwstruct(ex)
     setup = _kwcall(ex)
     (f, args, q) = setup.f, setup.args, setup.q
     push!(q.args, :($f(nt::NamedTuple{($(args...),),T}) where {T} = $f{($(args...),), T}(nt)))
