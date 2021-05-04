@@ -1,5 +1,7 @@
 module KeywordCalls
 
+using Compat
+
 export @kwcall
 
 @generated _sort(nt::NamedTuple{K}) where {K} = :(NamedTuple{($(QuoteNode.(sort(collect(K)))...),)}(nt))

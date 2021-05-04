@@ -1,14 +1,18 @@
 name = "KeywordCalls"
 uuid = "4d827475-d3e4-43d6-abe3-9688362ede9f"
 authors = ["Chad Scherrer <chad.scherrer@gmail.com> and contributors"]
-version = "0.1.1"
+version = "0.1.2"
+
+[deps]
+Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"
 
 [compat]
 julia = "1"
+Compat = "3.28"
 
 [extras]
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
 test = ["Test", "Pkg"]
