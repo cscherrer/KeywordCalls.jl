@@ -4,13 +4,15 @@ export @kwcall
 
 @generated _sort(nt::NamedTuple{K}) where {K} = :(NamedTuple{($(QuoteNode.(sort(collect(K)))...),)}(nt))
 
+function _call_in_default_order end
+
 macro kwcall(ex)
+    @assert Meta.isexpr(ex, :call)
     f, args... = ex.args
     f, args, sorted_args = esc(f), QuoteNode.(args), QuoteNode.(sort(args))
-    _call_in_default_order = GlobalRef(KeywordCalls, :_call_in_default_order)
     return quote
-        $_call_in_default_order($f, nt::NamedTuple{($(sorted_args...),)}) = $f(NamedTuple{($(args...),)}(nt))
-        $f(nt::NamedTuple) = $_call_in_default_order($f, _sort(nt))
+        KeywordCalls._call_in_default_order(::typeof($f), nt::NamedTuple{($(sorted_args...),)}) = $f(NamedTuple{($(args...),)}(nt))
+        $f(nt::NamedTuple) = KeywordCalls._call_in_default_order($f, _sort(nt))
         $f(; kw...) = $f(NamedTuple(kw))
     end
 end
