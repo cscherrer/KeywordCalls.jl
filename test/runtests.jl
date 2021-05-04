@@ -1,5 +1,5 @@
 using KeywordCalls
-using Test
+using Test, Pkg
 
 f(nt::NamedTuple{(:c,:b,:a)}) = nt.a^3 + nt.b^2 + nt.c
 @kwcall f(c,b,a)
@@ -22,4 +22,17 @@ Foo(nt::NamedTuple{(:a,:b),T}) where {T} = Foo{(:a,:b), T}(nt)
     @testset "Constructors" begin
         @test @inferred Foo((b=1,a=2)).nt == (a=2,b=1)
     end
+end
+
+if isfile("./Precompile2/Manifest.toml")
+    rm("./Precompile2/Manifest.toml")
+end
+
+Pkg.activate("./Precompile2")
+Pkg.develop(PackageSpec(path="./Precompile1"))
+
+using Precompile2
+
+@testset "caching with precompilation" begin
+    @test Precompile2.test() == (a=2, b=1)
 end
