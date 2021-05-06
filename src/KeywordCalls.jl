@@ -6,6 +6,15 @@ export @kwcall
 
 @generated _sort(nt::NamedTuple{K}) where {K} = :(NamedTuple{($(QuoteNode.(sort(collect(K)))...),)}(nt))
 
+_alias1(f,k) = k
+
+@generated function _alias(f, nt::NamedTuple{K}) where {K}
+    newnames = Tuple((_alias1(f,k) for k in K))
+    :(NamedTuple{($(QuoteNode.(newnames)...),)}(values(nt)))
+end
+
+
+
 function _call_in_default_order end
 
 # Thanks to @simeonschaub for this implementation 
@@ -26,7 +35,7 @@ function _kwcall(ex)
     f, args, sorted_args = esc(f), QuoteNode.(args), QuoteNode.(sort(args))
     q = quote
         KeywordCalls._call_in_default_order(::typeof($f), nt::NamedTuple{($(sorted_args...),)}) = $f(NamedTuple{($(args...),)}(nt))
-        $f(nt::NamedTuple) = KeywordCalls._call_in_default_order($f, _sort(nt))
+        $f(nt::NamedTuple) = KeywordCalls._call_in_default_order($f, _alias($f, _sort(nt)))
         $f(; kw...) = $f(NamedTuple(kw))
     end
     return (f=f, args=args, sorted_args=sorted_args, q=q)
