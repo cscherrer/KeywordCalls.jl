@@ -20,6 +20,16 @@ end
     @testset "Constructors" begin
         @test @inferred Foo((b=1,a=2)).nt == (a=2,b=1)
     end
+
+    @testset "Functions with defaults" begin
+        g(nt::NamedTuple{(:c,:b,:a)}) = f(nt)
+        @kwcall g(c=0, b, a)
+
+        @test @inferred g(a=1, b=2) == 5
+        @test @inferred g((a=1, b=2)) == 5
+        @test @inferred g(a=1, b=2, c=3) == 8
+        @test @inferred g((a=1, b=2, c=3)) == 8
+    end
 end
 
 if isfile("./Precompile2/Manifest.toml")
