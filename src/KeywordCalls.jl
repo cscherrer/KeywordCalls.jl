@@ -95,3 +95,5 @@ function _kwalias(f, aliasmap)
     end
     return q
 end
+
+end # module
