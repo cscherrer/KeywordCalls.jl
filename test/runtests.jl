@@ -4,11 +4,20 @@ using Test, Pkg
 f(nt::NamedTuple{(:c,:b,:a)}) = nt.a^3 + nt.b^2 + nt.c
 @kwcall f(c,b,a)
 
+g(nt::NamedTuple{(:c,:b,:a)}) = f(nt)
+@kwcall g(c=0, b, a)
+
 struct Foo{N,T}
     nt::NamedTuple{N,T}
 end
 
 @kwstruct Foo(a,b)
+
+struct Bar{N,T}
+    nt::NamedTuple{N,T}
+end
+
+@kwstruct Bar(a,b,c=0)
 
 @testset "KeywordCalls.jl" begin
     @testset "Functions" begin
@@ -22,13 +31,15 @@ end
     end
 
     @testset "Functions with defaults" begin
-        g(nt::NamedTuple{(:c,:b,:a)}) = f(nt)
-        @kwcall g(c=0, b, a)
-
         @test @inferred g(a=1, b=2) == 5
         @test @inferred g((a=1, b=2)) == 5
         @test @inferred g(a=1, b=2, c=3) == 8
         @test @inferred g((a=1, b=2, c=3)) == 8
+    end
+
+    @testset "Constructors with defaults" begin
+        @test @inferred Bar((b=1,a=2)).nt == (a=2,b=1,c=0)
+        @test @inferred Bar((b=1,a=2,c=5)).nt == (a=2,b=1,c=5)
     end
 end
 
