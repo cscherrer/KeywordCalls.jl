@@ -7,7 +7,7 @@ for n in 1:26
 
     @eval begin
         f(nt::NamedTuple{$fkeys}) = sum(values(nt))
-        $(KeywordCalls._kwcall(:(f($(fkeys...)))))
+        @kwcall f($(fkeys...))
     end
 end
 
