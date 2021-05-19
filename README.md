@@ -40,7 +40,7 @@ f(nt::NamedTuple{(:c, :a, :b)}) = println("The sum is ", sum(values(nt)))
 then
 
 ```julia
-julia> f(a=1, b=2)
+julia> f(a=1,b=2)
 The sum is 3
 
 julia> f(a=1,b=2,c=3)
