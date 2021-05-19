@@ -10,7 +10,7 @@ function _call_in_default_order end
 
 # Thanks to @simeonschaub for this implementation 
 """
-    @kwcall f(b,a,c)
+    @kwcall f(b,a,c=0)
 
 Declares that any call `f(::NamedTuple{N})` with `sort(N) == (:a,:b,:c)`
 should be dispatched to the method already defined on `f(::NamedTuple{(:b,:a,:c)})`
@@ -46,9 +46,9 @@ _get_arg(s::Symbol) = s
 export @kwstruct 
 
 """
-    @kwstruct Foo(b,a,c)
+    @kwstruct Foo(b,a,c=0)
 
-Equivalent to `@kwcall Foo(b,a,c)` plus a definition
+Equivalent to `@kwcall Foo(b,a,c=0)` plus a definition
 
     Foo(nt::NamedTuple{(:b, :a, :c), T}) where {T} = Foo{(:b, :a, :c), T}(nt)
 
