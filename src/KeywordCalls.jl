@@ -6,6 +6,15 @@ export @kwcall
 
 @generated _sort(nt::NamedTuple{K}) where {K} = :(NamedTuple{($(QuoteNode.(sort(collect(K)))...),)}(nt))
 
+_alias1(f,::Val{k}) where {k} = k
+
+function _alias(f, nt::NamedTuple{K}) where {K}
+    newnames = Tuple((_alias1(f,Val{k}()) for k in K))
+    NamedTuple{newnames}(values(nt))
+end
+
+
+
 function _call_in_default_order end
 
 # Thanks to @simeonschaub for this implementation 
@@ -24,10 +33,11 @@ function _kwcall(ex)
     f = ex.args[1]
     args, defaults = _parse_args(ex.args[2:end])
     f, args, sorted_args = esc(f), QuoteNode.(args), QuoteNode.(sort(args))
+    _alias = KeywordCalls._alias
     q = quote
         KeywordCalls._call_in_default_order(::typeof($f), nt::NamedTuple{($(sorted_args...),)}) = $f(NamedTuple{($(args...),)}(nt))
-        $f(nt::NamedTuple) = KeywordCalls._call_in_default_order($f, _sort(merge($defaults, nt)))
-        $f(; kw...) = $f(merge($defaults, NamedTuple(kw)))
+        $f(nt::NamedTuple) = KeywordCalls._call_in_default_order($f, _sort(merge($defaults, $_alias($f, nt))))
+        $f(; kw...) = $f(merge($defaults, $_alias($f, NamedTuple(kw))))
     end
     return (f=f, args=args, sorted_args=sorted_args, q=q)
 end
@@ -70,4 +80,23 @@ function _kwstruct(ex)
     return q
 end
 
+export @kwalias
+
+macro kwalias(f, aliasmap)
+    _kwalias(f, aliasmap)
 end
+
+function _kwalias(f, aliasmap)
+    f = esc(f)
+    q = quote end
+    for pair in aliasmap.args
+        # Each entry should look like `:(a => b)`
+        @assert pair.head == :call
+        @assert pair.args[1] == :(=>)
+        (a,b) = QuoteNode.(pair.args[2:3])
+        push!(q.args, :(KeywordCalls._alias1(::typeof($f), ::Val{$a}) = $b))
+    end
+    return q
+end
+
+end # module

@@ -7,6 +7,16 @@ f(nt::NamedTuple{(:c,:b,:a)}) = nt.a^3 + nt.b^2 + nt.c
 g(nt::NamedTuple{(:c,:b,:a)}) = f(nt)
 @kwcall g(c=0, b, a)
 
+@kwalias f [
+    alpha => a
+    beta => b
+]
+
+@kwalias g [
+    alpha => a
+    beta => b
+]
+
 struct Foo{N,T}
     nt::NamedTuple{N,T}
 end
@@ -40,6 +50,11 @@ end
     @testset "Constructors with defaults" begin
         @test @inferred Bar((b=1,a=2)).nt == (a=2,b=1,c=0)
         @test @inferred Bar((b=1,a=2,c=5)).nt == (a=2,b=1,c=5)
+    end
+
+    @testset "Keyword aliases" begin
+        @test @inferred f(alpha=1,b=2,c=3) == 8
+        @test @inferred g(beta=1, alpha=3) == 28
     end
 end
 
