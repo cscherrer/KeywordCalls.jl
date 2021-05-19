@@ -6,10 +6,10 @@ export @kwcall
 
 @generated _sort(nt::NamedTuple{K}) where {K} = :(NamedTuple{($(QuoteNode.(sort(collect(K)))...),)}(nt))
 
-_alias1(f,k) = k
+_alias1(f,::Val{k}) where {k} = k
 
 function _alias(f, nt::NamedTuple{K}) where {K}
-    newnames = Tuple((_alias1(f,k) for k in K))
+    newnames = Tuple((_alias1(f,Val{k}()) for k in K))
     NamedTuple{newnames}(values(nt))
 end
 
@@ -94,7 +94,7 @@ function _kwalias(f, aliasmap)
         @assert pair.head == :call
         @assert pair.args[1] == :(=>)
         (a,b) = QuoteNode.(pair.args[2:3])
-        push!(q.args, :(KeywordCalls._alias(::typeof($f), ::Val{$a}) = $b))
+        push!(q.args, :(KeywordCalls._alias1(::typeof($f), ::Val{$a}) = $b))
     end
     return q
 end
