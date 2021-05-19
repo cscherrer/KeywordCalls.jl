@@ -10,7 +10,7 @@ function _call_in_default_order end
 
 # Thanks to @simeonschaub for this implementation 
 """
-    @kwcall f(b,a,c)
+    @kwcall f(b,a,c=0)
 
 Declares that any call `f(::NamedTuple{N})` with `sort(N) == (:a,:b,:c)`
 should be dispatched to the method already defined on `f(::NamedTuple{(:b,:a,:c)})`
@@ -22,22 +22,33 @@ end
 function _kwcall(ex)
     @assert Meta.isexpr(ex, :call)
     f = ex.args[1]
-    args = ex.args[2:end]
+    args, defaults = _parse_args(ex.args[2:end])
     f, args, sorted_args = esc(f), QuoteNode.(args), QuoteNode.(sort(args))
     q = quote
         KeywordCalls._call_in_default_order(::typeof($f), nt::NamedTuple{($(sorted_args...),)}) = $f(NamedTuple{($(args...),)}(nt))
-        $f(nt::NamedTuple) = KeywordCalls._call_in_default_order($f, _sort(nt))
-        $f(; kw...) = $f(NamedTuple(kw))
+        $f(nt::NamedTuple) = KeywordCalls._call_in_default_order($f, _sort(merge($defaults, nt)))
+        $f(; kw...) = $f(merge($defaults, NamedTuple(kw)))
     end
     return (f=f, args=args, sorted_args=sorted_args, q=q)
 end
 
+function _parse_args(args)
+    # get args dropping the tail of any expressions
+    _args = map(_get_arg, args)
+    # get the `key = val` defaults as a NamedTuple
+    _defaults = @eval (;$(filter(a -> a isa Expr, args)...))
+    return _args, _defaults
+end
+
+_get_arg(ex::Expr) = ex.args[1]
+_get_arg(s::Symbol) = s
+
 export @kwstruct 
 
 """
-    @kwstruct Foo(b,a,c)
+    @kwstruct Foo(b,a,c=0)
 
-Equivalent to `@kwcall Foo(b,a,c)` plus a definition
+Equivalent to `@kwcall Foo(b,a,c=0)` plus a definition
 
     Foo(nt::NamedTuple{(:b, :a, :c), T}) where {T} = Foo{(:b, :a, :c), T}(nt)
 

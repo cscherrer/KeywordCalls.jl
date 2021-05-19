@@ -29,17 +29,20 @@ julia> f(b=2,a=1)
 Calling f(b = 2,a = 1)
 ```
 
-We can define a new method for any set of arguments we like. If (after the above) we also define
+We can define a new method for any set of arguments we like, including default values. If (after the above) we also define
 
 ```julia
 f(nt::NamedTuple{(:c, :a, :b)}) = println("The sum is ", sum(values(nt)))
 
-@kwcall f(c,a,b)
+@kwcall f(c=0,a,b)
 ```
 
 then
 
 ```julia
+julia> f(a=1,b=2)
+The sum is 3
+
 julia> f(a=1,b=2,c=3)
 The sum is 6
 ```
@@ -56,7 +59,7 @@ end
 then
 
 ```julia
-julia> @kwstruct Foo(μ,σ)
+julia> @kwstruct Foo(μ,σ=1)
 Foo
 
 julia> Foo(σ=2,μ=4)
