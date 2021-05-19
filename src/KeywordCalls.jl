@@ -8,9 +8,9 @@ export @kwcall
 
 _alias1(f,k) = k
 
-@generated function _alias(f, nt::NamedTuple{K}) where {K}
+function _alias(f, nt::NamedTuple{K}) where {K}
     newnames = Tuple((_alias1(f,k) for k in K))
-    :(NamedTuple{($(QuoteNode.(newnames)...),)}(values(nt)))
+    NamedTuple{newnames}(values(nt))
 end
 
 
@@ -33,10 +33,11 @@ function _kwcall(ex)
     f = ex.args[1]
     args, defaults = _parse_args(ex.args[2:end])
     f, args, sorted_args = esc(f), QuoteNode.(args), QuoteNode.(sort(args))
+    _alias = KeywordCalls._alias
     q = quote
         KeywordCalls._call_in_default_order(::typeof($f), nt::NamedTuple{($(sorted_args...),)}) = $f(NamedTuple{($(args...),)}(nt))
-        $f(nt::NamedTuple) = KeywordCalls._call_in_default_order($f, _sort(merge($defaults, nt)))
-        $f(; kw...) = $f(merge($defaults, NamedTuple(kw)))
+        $f(nt::NamedTuple) = KeywordCalls._call_in_default_order($f, _sort(merge($defaults, $_alias($f, nt))))
+        $f(; kw...) = $f(merge($defaults, $_alias($f, NamedTuple(kw))))
     end
     return (f=f, args=args, sorted_args=sorted_args, q=q)
 end
@@ -78,6 +79,8 @@ function _kwstruct(ex)
 
     return q
 end
+
+export @kwalias
 
 macro kwalias(f, aliasmap)
     _kwalias(f, aliasmap)
