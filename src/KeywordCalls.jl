@@ -35,8 +35,8 @@ end
 function _parse_args(args)
     # get args dropping the tail of any expressions
     _args = map(_get_arg, args)
-    # get the `key = val` defaults as a NamedTuple
-    _defaults = @eval (;$(filter(a -> a isa Expr, args)...))
+    # get the `key = val` defaults as a NamedTuple quote
+    _defaults = :((;$(filter(a -> a isa Expr, args)...)))
     return _args, _defaults
 end
 
