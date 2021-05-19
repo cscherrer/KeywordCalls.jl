@@ -88,8 +88,8 @@ function _kwalias(f, aliasmap)
     q = quote end
     for pair in aliasmap.args
         # Each entry should look like `:(a => b)`
-        @assert pair.head = :call
-        @assert pair.args[1] = :=>
+        @assert pair.head == :call
+        @assert pair.args[1] == :(=>)
         (a,b) = QuoteNode.(pairs.args[2:3])
         push!(q.args, :(KeywordCalls._alias(::typeof($f), ::Val{$a}) = $b))
     end
