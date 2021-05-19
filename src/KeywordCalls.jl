@@ -22,15 +22,26 @@ end
 function _kwcall(ex)
     @assert Meta.isexpr(ex, :call)
     f = ex.args[1]
-    args = ex.args[2:end]
+    args, defaults = _parse_args(ex.args[2:end])
     f, args, sorted_args = esc(f), QuoteNode.(args), QuoteNode.(sort(args))
     q = quote
         KeywordCalls._call_in_default_order(::typeof($f), nt::NamedTuple{($(sorted_args...),)}) = $f(NamedTuple{($(args...),)}(nt))
-        $f(nt::NamedTuple) = KeywordCalls._call_in_default_order($f, _sort(nt))
-        $f(; kw...) = $f(NamedTuple(kw))
+        $f(nt::NamedTuple) = KeywordCalls._call_in_default_order($f, _sort(merge((;$(defaults...)), nt)))
+        $f(; kw...) = $f(merge((;$(defaults...)), NamedTuple(kw)))
     end
     return (f=f, args=args, sorted_args=sorted_args, q=q)
 end
+
+function _parse_args(args)
+    # get args dropping the tail of any expressions
+    _args = map(_get_arg, args)
+    # get the `key = val` defaults
+    _defaults = filter(a -> a isa Expr, args)
+    return _args, _defaults
+end
+
+_get_arg(ex::Expr) = ex.args[1]
+_get_arg(s::Symbol) = s
 
 export @kwstruct 
 
