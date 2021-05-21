@@ -58,7 +58,7 @@ end
         @test @inferred g(beta=1, alpha=3) == 28
     end
 
-    if Base.VERSION ≥ v"1.5"
+    if Base.VERSION ≥ v"1.6"
         @testset "No Allocation" begin
             @test 0 == @ballocated f(a=1, b=2, c=3)
             @test 0 == @ballocated f((a=1, b=2, c=3))
