@@ -58,16 +58,18 @@ end
         @test @inferred g(beta=1, alpha=3) == 28
     end
 
-    @testset "No Allocation" begin
-        @test 0 == @ballocated f(a=1, b=2, c=3)
-        @test 0 == @ballocated f((a=1, b=2, c=3))
-        @test 0 == @ballocated Foo((b=1,a=2))
-        @test 0 == @ballocated g(a=1, b=2)
-        @test 0 == @ballocated g((a=1, b=2))
-        @test 0 == @ballocated g(a=1, b=2, c=3)
-        @test 0 == @ballocated g((a=1, b=2, c=3))
-        @test 0 == @ballocated f(alpha=1,b=2,c=3)
-        @test 0 == @ballocated g(beta=1, alpha=3)
+    if Base.VERSION ≥ v"1.5"
+        @testset "No Allocation" begin
+            @test 0 == @ballocated f(a=1, b=2, c=3)
+            @test 0 == @ballocated f((a=1, b=2, c=3))
+            @test 0 == @ballocated Foo((b=1,a=2))
+            @test 0 == @ballocated g(a=1, b=2)
+            @test 0 == @ballocated g((a=1, b=2))
+            @test 0 == @ballocated g(a=1, b=2, c=3)
+            @test 0 == @ballocated g((a=1, b=2, c=3))
+            @test 0 == @ballocated f(alpha=1,b=2,c=3)
+            @test 0 == @ballocated g(beta=1, alpha=3)
+        end
     end
 end
 
