@@ -10,6 +10,8 @@ In Julia, the named tuples `(a=1, b=2)` and `(b=2, a=1)` are distinct. In some c
 
 KeywordCalls.jl lets us do this, and allows specification of a "preferred ordering" for each set of arguments.
 
+**On Julia 1.6, this can be done with no allocation!** This is included in the unit tests. Unfortunately, the current implementation leads to allcoation in Julia 1.4 and 1.5. We hope this can be improved for better backward-compatibility, but for now we recommend using 1.6 if possible.
+
 ## `@kwcall`
 
 If we define
