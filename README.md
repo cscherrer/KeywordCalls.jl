@@ -75,7 +75,7 @@ The sum is 5
 
 KeywordCalls is especially powerful when used for structs. If you have
 ```julia
-Foo{N,T} [<: SomeAbstractTypeIfYouLike]
+struct Foo{N,T} [<: SomeAbstractTypeIfYouLike]
     someFieldName :: NamedTuple{N,T}
 end
 ```
