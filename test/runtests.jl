@@ -1,5 +1,6 @@
 using KeywordCalls
 using Test, Pkg
+using BenchmarkTools
 
 f(nt::NamedTuple{(:c,:b,:a)}) = nt.a^3 + nt.b^2 + nt.c
 @kwcall f(c,b,a)
@@ -55,6 +56,18 @@ end
     @testset "Keyword aliases" begin
         @test @inferred f(alpha=1,b=2,c=3) == 8
         @test @inferred g(beta=1, alpha=3) == 28
+    end
+
+    @testset "No Allocation" begin
+        @test 0 == @ballocated f(a=1, b=2, c=3)
+        @test 0 == @ballocated f((a=1, b=2, c=3))
+        @test 0 == @ballocated Foo((b=1,a=2))
+        @test 0 == @ballocated g(a=1, b=2)
+        @test 0 == @ballocated g((a=1, b=2))
+        @test 0 == @ballocated g(a=1, b=2, c=3)
+        @test 0 == @ballocated g((a=1, b=2, c=3))
+        @test 0 == @ballocated f(alpha=1,b=2,c=3)
+        @test 0 == @ballocated g(beta=1, alpha=3)
     end
 end
 
