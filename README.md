@@ -47,7 +47,31 @@ julia> f(a=1,b=2,c=3)
 The sum is 6
 ```
 
-## `kwstruct`
+## `@kwalias`
+
+It's often useful to allow multiple names to be mapped to the same interpretation. For that, we have `@kwalias`:
+
+```julia
+julia> using KeywordCalls
+
+julia> @kwcall f(c=0,a,b)
+f (generic function with 3 methods)
+
+julia> @kwalias f [
+       α     => a
+       alpha => a
+       β     => b
+       beta  => b
+       ]
+
+julia> f(α=2,β=3)
+The sum is 5
+
+julia> f(α=2,beta=3)
+The sum is 5
+```
+
+## `@kwstruct`
 
 KeywordCalls is especially powerful when used for structs. If you have
 ```julia
