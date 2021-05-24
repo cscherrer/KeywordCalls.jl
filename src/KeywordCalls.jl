@@ -24,7 +24,12 @@ function _call_in_default_order end
     @kwcall f(b,a,c=0)
 
 Declares that any call `f(::NamedTuple{N})` with `sort(N) == (:a,:b,:c)`
-should be dispatched to the method already defined on `f(::NamedTuple{(:b,:a,:c)})`
+should be dispatched to the method already defined on
+`f(::NamedTuple{(:b,:a,:c)})`
+
+Note that in the example `@kwcall f(b,a,c=0)`, the macro checks for existence of
+`f(::NamedTuple)` and `f(; kwargs...)` methods, and only creates new ones if
+these don't already exist.
 """
 macro kwcall(ex)
     _kwcall(__module__, ex).q
@@ -91,6 +96,9 @@ Note that this assumes existence of a `Foo` struct of the form
     Foo{N,T} [<: SomeAbstractTypeIfYouLike]
         someFieldName :: NamedTuple{N,T}
     end
+
+Unlike `@kwcall`, `@kwstruct` always creates a new method for generic named
+tuples. This is needed because defining a struct adds a method for the constructor.
 """
 macro kwstruct(ex)
     _kwstruct(__module__, ex)
