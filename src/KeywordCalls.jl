@@ -44,7 +44,7 @@ function _kwcall(__module__, ex)
 
     if !hasmethod(f_raw, Tuple{NamedTuple{N,T}} where {N,T})
         namedtuplemethod = quote
-            function $f(nt::NamedTuple)
+            @inline function $f(nt::NamedTuple)
                 aliased = $alias($f, nt)
                 merged = merge($defaults, aliased)
                 sorted = $_sort(merged)
@@ -63,7 +63,7 @@ function _kwcall(__module__, ex)
         push!(q.args, kwmethod)
     end
 
-    return (f=f, args=args, sorted_args=sorted_args, q=q)
+    return (f=f, args=args, defaults=defaults, sorted_args=sorted_args, q=q)
 end
 
 function _parse_args(args)
@@ -98,9 +98,18 @@ end
 
 function _kwstruct(__module__, ex)
     setup = _kwcall(__module__, ex)
-    (f, args, q) = setup.f, setup.args, setup.q
+    (f, args, defaults, q) = setup.f, setup.args, setup.defaults,  setup.q
     push!(q.args, :($f(nt::NamedTuple{($(args...),),T}) where {T} = $f{($(args...),), T}(nt)))
-
+    
+    namedtuplemethod = quote
+        @inline function $f(nt::NamedTuple)
+            aliased = $alias($f, nt)
+            merged = merge($defaults, aliased)
+            sorted = $_sort(merged)
+            return $_call_in_default_order($f, sorted)
+        end
+    end
+    push!(q.args, namedtuplemethod)
     return q
 end
 
