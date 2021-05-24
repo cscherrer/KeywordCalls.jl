@@ -38,18 +38,17 @@ function _kwcall(__module__, ex)
     f, args, sorted_args = esc(f), QuoteNode.(args), QuoteNode.(sort(args))
     alias = KeywordCalls.alias
     _sort = KeywordCalls._sort
-    _call_in_default_order = KeywordCalls._call_in_default_order
     q = quote
         KeywordCalls._call_in_default_order(::typeof($f), nt::NamedTuple{($(sorted_args...),)}) = $f(NamedTuple{($(args...),)}(nt))
     end
 
-    if !hasmethod(f_raw, Tuple{NamedTuple})
+    if !hasmethod(f_raw, Tuple{NamedTuple{N,T}} where {N,T})
         namedtuplemethod = quote
             function $f(nt::NamedTuple)
                 aliased = $alias($f, nt)
                 merged = merge($defaults, aliased)
                 sorted = $_sort(merged)
-                $_call_in_default_order($f, sorted)
+                return $_call_in_default_order($f, sorted)
             end
         end
         push!(q.args, namedtuplemethod)
@@ -57,7 +56,11 @@ function _kwcall(__module__, ex)
 
     
     if !hasmethod(f_raw, Tuple{}, (gensym(),))
-        push!(q.args, :($f(; kw...) = $f(merge($defaults, $alias($f, NamedTuple(kw))))))
+        kwmethod = quote
+            $f(;kw...) = $f(NamedTuple(kw))
+        end
+
+        push!(q.args, kwmethod)
     end
 
     return (f=f, args=args, sorted_args=sorted_args, q=q)
