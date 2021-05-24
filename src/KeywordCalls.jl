@@ -27,20 +27,39 @@ Declares that any call `f(::NamedTuple{N})` with `sort(N) == (:a,:b,:c)`
 should be dispatched to the method already defined on `f(::NamedTuple{(:b,:a,:c)})`
 """
 macro kwcall(ex)
-    _kwcall(ex).q
+    _kwcall(__module__, ex).q
 end
 
-function _kwcall(ex)
+function _kwcall(__module__, ex)
     @assert Meta.isexpr(ex, :call)
     f = ex.args[1]
     args, defaults = _parse_args(ex.args[2:end])
+    f_raw = getproperty(__module__, f)
     f, args, sorted_args = esc(f), QuoteNode.(args), QuoteNode.(sort(args))
     alias = KeywordCalls.alias
+    _sort = KeywordCalls._sort
+    _call_in_default_order = KeywordCalls._call_in_default_order
     q = quote
         KeywordCalls._call_in_default_order(::typeof($f), nt::NamedTuple{($(sorted_args...),)}) = $f(NamedTuple{($(args...),)}(nt))
-        $f(nt::NamedTuple) = KeywordCalls._call_in_default_order($f, _sort(merge($defaults, $alias($f, nt))))
-        $f(; kw...) = $f(merge($defaults, $alias($f, NamedTuple(kw))))
     end
+
+    if !hasmethod(f_raw, Tuple{NamedTuple})
+        namedtuplemethod = quote
+            function $f(nt::NamedTuple)
+                aliased = $alias($f, nt)
+                merged = merge($defaults, aliased)
+                sorted = $_sort(merged)
+                $_call_in_default_order($f, sorted)
+            end
+        end
+        push!(q.args, namedtuplemethod)
+    end
+
+    
+    if !hasmethod(f_raw, Tuple{}, (gensym(),))
+        push!(q.args, :($f(; kw...) = $f(merge($defaults, $alias($f, NamedTuple(kw))))))
+    end
+
     return (f=f, args=args, sorted_args=sorted_args, q=q)
 end
 
@@ -71,11 +90,11 @@ Note that this assumes existence of a `Foo` struct of the form
     end
 """
 macro kwstruct(ex)
-    _kwstruct(ex)
+    _kwstruct(__module__, ex)
 end
 
-function _kwstruct(ex)
-    setup = _kwcall(ex)
+function _kwstruct(__module__, ex)
+    setup = _kwcall(__module__, ex)
     (f, args, q) = setup.f, setup.args, setup.q
     push!(q.args, :($f(nt::NamedTuple{($(args...),),T}) where {T} = $f{($(args...),), T}(nt)))
 
