@@ -24,24 +24,51 @@ function _call_in_default_order end
     @kwcall f(b,a,c=0)
 
 Declares that any call `f(::NamedTuple{N})` with `sort(N) == (:a,:b,:c)`
-should be dispatched to the method already defined on `f(::NamedTuple{(:b,:a,:c)})`
+should be dispatched to the method already defined on
+`f(::NamedTuple{(:b,:a,:c)})`
+
+Note that in the example `@kwcall f(b,a,c=0)`, the macro checks for existence of
+`f(::NamedTuple)` and `f(; kwargs...)` methods, and only creates new ones if
+these don't already exist.
 """
 macro kwcall(ex)
-    _kwcall(ex).q
+    _kwcall(__module__, ex).q
 end
 
-function _kwcall(ex)
+function _kwcall(__module__, ex)
     @assert Meta.isexpr(ex, :call)
     f = ex.args[1]
     args, defaults = _parse_args(ex.args[2:end])
+    f_raw = getproperty(__module__, f)
     f, args, sorted_args = esc(f), QuoteNode.(args), QuoteNode.(sort(args))
     alias = KeywordCalls.alias
+    _sort = KeywordCalls._sort
     q = quote
         KeywordCalls._call_in_default_order(::typeof($f), nt::NamedTuple{($(sorted_args...),)}) = $f(NamedTuple{($(args...),)}(nt))
-        $f(nt::NamedTuple) = KeywordCalls._call_in_default_order($f, _sort(merge($defaults, $alias($f, nt))))
-        $f(; kw...) = $f(merge($defaults, $alias($f, NamedTuple(kw))))
     end
-    return (f=f, args=args, sorted_args=sorted_args, q=q)
+
+    if !hasmethod(f_raw, Tuple{NamedTuple{N,T}} where {N,T})
+        namedtuplemethod = quote
+            @inline function $f(nt::NamedTuple)
+                aliased = $alias($f, nt)
+                merged = merge($defaults, aliased)
+                sorted = $_sort(merged)
+                return $_call_in_default_order($f, sorted)
+            end
+        end
+        push!(q.args, namedtuplemethod)
+    end
+
+    
+    if !hasmethod(f_raw, Tuple{}, (gensym(),))
+        kwmethod = quote
+            $f(;kw...) = $f(NamedTuple(kw))
+        end
+
+        push!(q.args, kwmethod)
+    end
+
+    return (f=f, args=args, defaults=defaults, sorted_args=sorted_args, q=q)
 end
 
 function _parse_args(args)
@@ -69,16 +96,28 @@ Note that this assumes existence of a `Foo` struct of the form
     Foo{N,T} [<: SomeAbstractTypeIfYouLike]
         someFieldName :: NamedTuple{N,T}
     end
+
+Unlike `@kwcall`, `@kwstruct` always creates a new method for generic named
+tuples. This is needed because defining a struct adds a method for the constructor.
 """
 macro kwstruct(ex)
-    _kwstruct(ex)
+    _kwstruct(__module__, ex)
 end
 
-function _kwstruct(ex)
-    setup = _kwcall(ex)
-    (f, args, q) = setup.f, setup.args, setup.q
+function _kwstruct(__module__, ex)
+    setup = _kwcall(__module__, ex)
+    (f, args, defaults, q) = setup.f, setup.args, setup.defaults,  setup.q
     push!(q.args, :($f(nt::NamedTuple{($(args...),),T}) where {T} = $f{($(args...),), T}(nt)))
-
+    
+    namedtuplemethod = quote
+        @inline function $f(nt::NamedTuple)
+            aliased = $alias($f, nt)
+            merged = merge($defaults, aliased)
+            sorted = $_sort(merged)
+            return $_call_in_default_order($f, sorted)
+        end
+    end
+    push!(q.args, namedtuplemethod)
     return q
 end
 
