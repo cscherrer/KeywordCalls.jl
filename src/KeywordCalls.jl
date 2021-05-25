@@ -39,32 +39,48 @@ function _kwcall(__module__, ex)
     @assert Meta.isexpr(ex, :call)
     f = ex.args[1]
     args, defaults = _parse_args(ex.args[2:end])
-    f_raw = getproperty(__module__, f)
+
+    f_defined = isdefined(__module__, f)
+    if f_defined
+        f_raw = getproperty(__module__, f)
+    end
+
     f, args, sorted_args = esc(f), QuoteNode.(args), QuoteNode.(sort(args))
     alias = KeywordCalls.alias
     _sort = KeywordCalls._sort
     q = quote
         KeywordCalls._call_in_default_order(::typeof($f), nt::NamedTuple{($(sorted_args...),)}) = $f(NamedTuple{($(args...),)}(nt))
     end
+    
+    # `namedtuplemethod` and `kwmethod` will be added to `q` if
+    # 1. `f` is not defined, OR
+    # 2. `f` is defined, but these methods are not
 
-    if !hasmethod(f_raw, Tuple{NamedTuple{N,T}} where {N,T})
-        namedtuplemethod = quote
-            @inline function $f(nt::NamedTuple)
-                aliased = $alias($f, nt)
-                merged = merge($defaults, aliased)
-                sorted = $_sort(merged)
-                return $_call_in_default_order($f, sorted)
-            end
+    namedtuplemethod = quote
+        @inline function $f(nt::NamedTuple)
+            aliased = $alias($f, nt)
+            merged = merge($defaults, aliased)
+            sorted = $_sort(merged)
+            return $_call_in_default_order($f, sorted)
         end
-        push!(q.args, namedtuplemethod)
     end
 
-    
-    if !hasmethod(f_raw, Tuple{}, (gensym(),))
-        kwmethod = quote
-            $f(;kw...) = $f(NamedTuple(kw))
+    kwmethod = quote
+        $f(;kw...) = $f(NamedTuple(kw))
+    end
+
+    if f_defined
+        # If f was previously defined, we add methods only if they're missing
+        if !hasmethod(f_raw, Tuple{NamedTuple{N,T}} where {N,T})
+            push!(q.args, namedtuplemethod)
         end
 
+        if !hasmethod(f_raw, Tuple{}, (gensym(),))           
+            push!(q.args, kwmethod)
+        end
+    else
+        # If f is not defined, just add the methods, no method check required
+        push!(q.args, namedtuplemethod)
         push!(q.args, kwmethod)
     end
 
