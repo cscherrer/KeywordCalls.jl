@@ -57,27 +57,24 @@ function _kwcall(__module__, ex)
         end
     end
     
-    # `namedtuplemethod` and `kwmethod` will be added to `q` if
-    # 1. `f` is not defined, OR
-    # 2. `f` is defined, but these methods are not
-    
-    namedtuplemethod = quote
-        @inline function $f_esc(nt::NamedTuple)
-            aliased = $alias($f, nt)
-            merged = merge($defaults, aliased)
-            sorted = $_sort(merged)
-            return $_call_in_default_order($f, sorted)
-        end
-    end
-
-    kwmethod = quote
-        $f_esc(;kw...) = $f_esc(NamedTuple(kw))
-    end
-
     if !kw_exists(f, args)
+        namedtuplemethod = quote
+            @inline function $f_esc(nt::NamedTuple)
+                aliased = $alias($f, nt)
+                merged = merge($defaults, aliased)
+                sorted = $_sort(merged)
+                return $_call_in_default_order($f, sorted)
+            end
+        end
+
         push!(q.args, namedtuplemethod)
     end
-    if !hasmethod(f, Tuple{}, (gensym(),))           
+
+    if !hasmethod(f, Tuple{}, (gensym(),))
+        kwmethod = quote
+            $f_esc(;kw...) = $f_esc(NamedTuple(kw))
+        end
+
         push!(q.args, kwmethod)
     end
 
