@@ -68,9 +68,7 @@ function _kwcall(__module__, ex)
         end
 
         push!(q.args, namedtuplemethod)
-    end
 
-    if !hasmethod(f, Tuple{}, (gensym(),))
         kwmethod = quote
             $f_esc(;kw...) = $f_esc(NamedTuple(kw))
         end
