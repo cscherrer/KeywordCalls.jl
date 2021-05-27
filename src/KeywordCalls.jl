@@ -89,7 +89,6 @@ end
 
 _get_arg(ex::Expr) = ex.args[1]
 _get_arg(s::Symbol) = s
-_get_arg(qn::QuoteNode) = qn.value
 
 export @kwstruct 
 
