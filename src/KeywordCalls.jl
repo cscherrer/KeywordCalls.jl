@@ -1,6 +1,7 @@
 module KeywordCalls
 
 using Compat
+using Tricks
 
 export @kwcall
 
@@ -71,7 +72,7 @@ function _kwcall(__module__, ex)
 
     if f_defined
         # If f was previously defined, we add methods only if they're missing
-        if !hasmethod(f_raw, Tuple{NamedTuple{N,T}} where {N,T})
+        if !kw_exists(f_raw, args)
             push!(q.args, namedtuplemethod)
         end
 
@@ -125,15 +126,6 @@ function _kwstruct(__module__, ex)
     (f, args, defaults, q) = setup.f, setup.args, setup.defaults,  setup.q
     push!(q.args, :($f(nt::NamedTuple{($(args...),),T}) where {T} = $f{($(args...),), T}(nt)))
     
-    namedtuplemethod = quote
-        @inline function $f(nt::NamedTuple)
-            aliased = $alias($f, nt)
-            merged = merge($defaults, aliased)
-            sorted = $_sort(merged)
-            return $_call_in_default_order($f, sorted)
-        end
-    end
-    push!(q.args, namedtuplemethod)
     return q
 end
 
@@ -164,6 +156,12 @@ function _kwalias(f, aliasmap)
         push!(q.args, :(KeywordCalls.alias(::typeof($f), ::Val{$a}) = $b))
     end
     return q
+end
+
+function kw_exists(f, argnames)
+    argnames = tuple(map(quotenode -> getproperty(quotenode, :value), argnames)...)
+    nt = _sort(NamedTuple{argnames}(ntuple(i -> 1, length(argnames))))
+    static_hasmethod(_call_in_default_order, Tuple{typeof(f), typeof(nt)})
 end
 
 end # module
