@@ -1,6 +1,7 @@
 module KeywordCalls
 
 using Compat
+using Tricks
 
 export @kwcall
 
@@ -37,38 +38,45 @@ end
 
 function _kwcall(__module__, ex)
     @assert Meta.isexpr(ex, :call)
-    f = ex.args[1]
+    f_sym = ex.args[1]
+    f_esc = esc(f_sym)
     args, defaults = _parse_args(ex.args[2:end])
-    f_raw = getproperty(__module__, f)
-    f, args, sorted_args = esc(f), QuoteNode.(args), QuoteNode.(sort(args))
+
+    @assert isdefined(__module__, f_sym)
+
+    f = getproperty(__module__, f_sym)
+    argnames = QuoteNode.(args)
+    sorted_argnames = QuoteNode.(sort(args))
+
     alias = KeywordCalls.alias
     _sort = KeywordCalls._sort
+    instance_type = KeywordCalls.instance_type
     q = quote
-        KeywordCalls._call_in_default_order(::typeof($f), nt::NamedTuple{($(sorted_args...),)}) = $f(NamedTuple{($(args...),)}(nt))
+        function KeywordCalls._call_in_default_order(::$instance_type($f), nt::NamedTuple{($(sorted_argnames...),)})
+            return $f_esc(NamedTuple{($(argnames...),)}(nt))
+        end
     end
-
-    if !hasmethod(f_raw, Tuple{NamedTuple{N,T}} where {N,T})
+    
+    if !kw_exists(f, args)
         namedtuplemethod = quote
-            @inline function $f(nt::NamedTuple)
+            @inline function $f_esc(nt::NamedTuple)
                 aliased = $alias($f, nt)
                 merged = merge($defaults, aliased)
                 sorted = $_sort(merged)
                 return $_call_in_default_order($f, sorted)
             end
         end
-        push!(q.args, namedtuplemethod)
-    end
 
-    
-    if !hasmethod(f_raw, Tuple{}, (gensym(),))
+        push!(q.args, namedtuplemethod)
+
         kwmethod = quote
-            $f(;kw...) = $f(NamedTuple(kw))
+            $f_esc(;kw...) = $f_esc(NamedTuple(kw))
         end
 
         push!(q.args, kwmethod)
     end
 
-    return (f=f, args=args, defaults=defaults, sorted_args=sorted_args, q=q)
+    return (f_esc=f_esc, args=args, defaults=defaults, sorted_argnames=sorted_argnames, q=q)
 end
 
 function _parse_args(args)
@@ -106,18 +114,11 @@ end
 
 function _kwstruct(__module__, ex)
     setup = _kwcall(__module__, ex)
-    (f, args, defaults, q) = setup.f, setup.args, setup.defaults,  setup.q
-    push!(q.args, :($f(nt::NamedTuple{($(args...),),T}) where {T} = $f{($(args...),), T}(nt)))
+    (f_esc, args, defaults, q) = setup.f_esc, setup.args, setup.defaults,  setup.q
+    argnames = QuoteNode.(args)
+
+    push!(q.args, :($f_esc(nt::NamedTuple{($(argnames...),),T}) where {T} = $f_esc{($(argnames...),), T}(nt)))
     
-    namedtuplemethod = quote
-        @inline function $f(nt::NamedTuple)
-            aliased = $alias($f, nt)
-            merged = merge($defaults, aliased)
-            sorted = $_sort(merged)
-            return $_call_in_default_order($f, sorted)
-        end
-    end
-    push!(q.args, namedtuplemethod)
     return q
 end
 
@@ -145,9 +146,19 @@ function _kwalias(f, aliasmap)
         @assert pair.head == :call
         @assert pair.args[1] == :(=>)
         (a,b) = QuoteNode.(pair.args[2:3])
-        push!(q.args, :(KeywordCalls.alias(::typeof($f), ::Val{$a}) = $b))
+        push!(q.args, :(KeywordCalls.alias(::$instance_type($f), ::Val{$a}) = $b))
     end
     return q
 end
+
+function kw_exists(f, args)
+    args = tuple(args...)
+    nt = _sort(NamedTuple{args}(ntuple(i -> 1, length(args))))
+    static_hasmethod(_call_in_default_order, Tuple{instance_type(f), typeof(nt)})
+end
+
+# See https://github.com/cscherrer/KeywordCalls.jl/issues/22
+instance_type(f::F) where {F<:Function} = F
+instance_type(f::UnionAll) = Type{f}
 
 end # module
