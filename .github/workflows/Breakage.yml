@@ -13,9 +13,8 @@ jobs:
       fail-fast: false
       matrix:
         pkg: [
-          "JuliaSmoothOptimizers/NLPModels.jl",
-          "JuliaIO/JSON.jl",
-          "timholy/Revise.jl"
+          "JuliaAstro/Transits.jl",
+          "cscherrer/MeasureTheory.jl",
         ]
         pkgversion: [latest, stable]
 
