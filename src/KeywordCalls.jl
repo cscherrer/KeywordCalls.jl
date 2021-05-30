@@ -52,7 +52,9 @@ function _kwcall(__module__, ex)
     _sort = KeywordCalls._sort
     instance_type = KeywordCalls.instance_type
     q = quote
-        function KeywordCalls._call_in_default_order(::$instance_type($f), nt::NamedTuple{($(sorted_argnames...),)})
+        const inst = $instance_type($f)
+
+        function KeywordCalls._call_in_default_order(::inst, nt::NamedTuple{($(sorted_argnames...),)})
             return $f_esc(NamedTuple{($(argnames...),)}(nt))
         end
     end
@@ -146,7 +148,13 @@ function _kwalias(f, aliasmap)
         @assert pair.head == :call
         @assert pair.args[1] == :(=>)
         (a,b) = QuoteNode.(pair.args[2:3])
-        push!(q.args, :(KeywordCalls.alias(::$instance_type($f), ::Val{$a}) = $b))
+
+        newmethod = quote
+            const inst = $instance_type($f)
+            KeywordCalls.alias(::inst, ::Val{$a}) = $b
+        end
+
+        push!(q.args, newmethod)
     end
     return q
 end
