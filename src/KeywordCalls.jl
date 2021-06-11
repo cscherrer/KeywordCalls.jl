@@ -126,7 +126,11 @@ function _kwstruct(__module__, ex)
     f_esc = esc(f_sym)
     f = getproperty(__module__, f_sym)
 
-
+    # `Tricks.static_hasmethod` currently doesn't work on constructors 
+    # (see https://github.com/oxinabox/Tricks.jl/issues/17)
+    # But we can fake it by creating a `build` method that's defined iff the
+    # constructor has the corresponding method. Then we can check for presence
+    # of the `build` method and know whether the constructor method is defined.
     if !static_hasmethod(build, Tuple{instance_type(f), Tuple{NamedTuple{((args...),)}}})
         argnames = QuoteNode.(args)
         
