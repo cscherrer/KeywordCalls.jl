@@ -101,9 +101,9 @@ _get_arg(s::Symbol) = s
 export @kwstruct 
 
 """
-    @kwstruct Foo(b,a,c=0)
+    @kwstruct Foo(b,a,c)
 
-Equivalent to `@kwcall Foo(b,a,c=0)` plus a definition
+Equivalent to `@kwcall Foo(b,a,c)` plus a definition
 
     Foo(nt::NamedTuple{(:b, :a, :c), T}) where {T} = Foo{(:b, :a, :c), T}(nt)
 
@@ -113,8 +113,9 @@ Note that this assumes existence of a `Foo` struct of the form
         someFieldName :: NamedTuple{N,T}
     end
 
-Unlike `@kwcall`, `@kwstruct` always creates a new method for generic named
-tuples. This is needed because defining a struct adds a method for the constructor.
+NOTE: Default values (as in `@kwcall`) currently do not work for `@kwstruct`.
+They can work at the REPL, but this seems to be because of a world age issue.
+This feature may be supported again in a future release.
 """
 macro kwstruct(ex)
     _kwstruct(__module__, ex)
