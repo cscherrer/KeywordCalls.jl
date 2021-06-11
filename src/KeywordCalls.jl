@@ -181,12 +181,6 @@ function _kwalias(f, aliasmap)
     return q
 end
 
-function kw_exists(f, args)
-    args = tuple(args...)
-    nt = _sort(NamedTuple{args}(ntuple(i -> 1, length(args))))
-    static_hasmethod(_call_in_default_order, Tuple{instance_type(f), typeof(nt)})
-end
-
 # See https://github.com/cscherrer/KeywordCalls.jl/issues/22
 instance_type(f::F) where {F<:Function} = F
 instance_type(f::UnionAll) = Type{f}
