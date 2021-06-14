@@ -1,6 +1,9 @@
-using KeywordCalls
 using Test, Pkg
 using BenchmarkTools
+
+@testset "No warnings on import" begin
+    @test_nowarn @eval using KeywordCalls
+end
 
 f(nt::NamedTuple{(:c,:b,:a)}) = nt.a^3 + nt.b^2 + nt.c
 @kwcall f(c,b,a)
@@ -49,8 +52,8 @@ end
     end
 
     @testset "Constructors with defaults" begin
-        @test @inferred Bar((b=1,a=2)).nt == (a=2,b=1,c=0)
-        @test @inferred Bar((b=1,a=2,c=5)).nt == (a=2,b=1,c=5)
+        @test_broken @inferred Bar((b=1,a=2)).nt == (a=2,b=1,c=0)
+        @test_broken @inferred Bar((b=1,a=2,c=5)).nt == (a=2,b=1,c=5)
     end
 
     @testset "Keyword aliases" begin

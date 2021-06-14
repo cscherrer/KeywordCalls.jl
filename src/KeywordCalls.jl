@@ -16,7 +16,8 @@ function alias(f, nt::NamedTuple{K}) where {K}
     NamedTuple{newnames}(values(nt))
 end
 
-
+function has_kwargs end
+function build end
 
 function _call_in_default_order end
 
@@ -41,16 +42,19 @@ function _kwcall(__module__, ex)
     f_sym = ex.args[1]
     f_esc = esc(f_sym)
     args, defaults = _parse_args(ex.args[2:end])
-
+    
     @assert isdefined(__module__, f_sym)
 
     f = getproperty(__module__, f_sym)
+
     argnames = QuoteNode.(args)
     sorted_argnames = QuoteNode.(sort(args))
 
     alias = KeywordCalls.alias
     _sort = KeywordCalls._sort
     instance_type = KeywordCalls.instance_type
+    
+
     q = quote
         const inst = $instance_type($f)
 
@@ -59,7 +63,8 @@ function _kwcall(__module__, ex)
         end
     end
     
-    if !kw_exists(f, args)
+
+    if !static_hasmethod(has_kwargs, Tuple{typeof(f)})
         namedtuplemethod = quote
             @inline function $f_esc(nt::NamedTuple)
                 aliased = $alias($f, nt)
@@ -73,12 +78,13 @@ function _kwcall(__module__, ex)
 
         kwmethod = quote
             $f_esc(;kw...) = $f_esc(NamedTuple(kw))
+            KeywordCalls.has_kwargs(::typeof($f_esc)) = true
         end
 
         push!(q.args, kwmethod)
     end
 
-    return (f_esc=f_esc, args=args, defaults=defaults, sorted_argnames=sorted_argnames, q=q)
+    return (f_sym=f_sym, args=args, defaults=defaults, sorted_argnames=sorted_argnames, q=q)
 end
 
 function _parse_args(args)
@@ -95,9 +101,9 @@ _get_arg(s::Symbol) = s
 export @kwstruct 
 
 """
-    @kwstruct Foo(b,a,c=0)
+    @kwstruct Foo(b,a,c)
 
-Equivalent to `@kwcall Foo(b,a,c=0)` plus a definition
+Equivalent to `@kwcall Foo(b,a,c)` plus a definition
 
     Foo(nt::NamedTuple{(:b, :a, :c), T}) where {T} = Foo{(:b, :a, :c), T}(nt)
 
@@ -107,8 +113,9 @@ Note that this assumes existence of a `Foo` struct of the form
         someFieldName :: NamedTuple{N,T}
     end
 
-Unlike `@kwcall`, `@kwstruct` always creates a new method for generic named
-tuples. This is needed because defining a struct adds a method for the constructor.
+NOTE: Default values (as in `@kwcall`) currently do not work for `@kwstruct`.
+They can work at the REPL, but this seems to be because of a world age issue.
+This feature may be supported again in a future release.
 """
 macro kwstruct(ex)
     _kwstruct(__module__, ex)
@@ -116,11 +123,27 @@ end
 
 function _kwstruct(__module__, ex)
     setup = _kwcall(__module__, ex)
-    (f_esc, args, defaults, q) = setup.f_esc, setup.args, setup.defaults,  setup.q
-    argnames = QuoteNode.(args)
+    (f_sym, args, defaults, q) = setup.f_sym, setup.args, setup.defaults,  setup.q
+    f_esc = esc(f_sym)
+    f = getproperty(__module__, f_sym)
 
-    push!(q.args, :($f_esc(nt::NamedTuple{($(argnames...),),T}) where {T} = $f_esc{($(argnames...),), T}(nt)))
-    
+    # `Tricks.static_hasmethod` currently doesn't work on constructors 
+    # (see https://github.com/oxinabox/Tricks.jl/issues/17)
+    # But we can fake it by creating a `build` method that's defined iff the
+    # constructor has the corresponding method. Then we can check for presence
+    # of the `build` method and know whether the constructor method is defined.
+    if !static_hasmethod(build, Tuple{instance_type(f), Tuple{NamedTuple{((args...),)}}})
+        argnames = QuoteNode.(args)
+        
+        new_method = quote
+            const inst = $instance_type($f_esc)
+            $f_esc(nt::NamedTuple{($(argnames...),),T}) where {T} = $f_esc{($(argnames...),), T}(nt)
+            KeywordCalls.build(::inst, ::NamedTuple{($(argnames...),),T}) where {T} = true
+        end
+
+        push!(q.args, new_method)
+    end
+
     return q
 end
 
@@ -157,12 +180,6 @@ function _kwalias(f, aliasmap)
         push!(q.args, newmethod)
     end
     return q
-end
-
-function kw_exists(f, args)
-    args = tuple(args...)
-    nt = _sort(NamedTuple{args}(ntuple(i -> 1, length(args))))
-    static_hasmethod(_call_in_default_order, Tuple{instance_type(f), typeof(nt)})
 end
 
 # See https://github.com/cscherrer/KeywordCalls.jl/issues/22
