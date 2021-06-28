@@ -172,9 +172,10 @@ function _kwalias(f, aliasmap)
         @assert pair.args[1] == :(=>)
         (a,b) = QuoteNode.(pair.args[2:3])
 
+        @gensym inst
         newmethod = quote
-            const inst = $instance_type($f)
-            KeywordCalls.alias(::inst, ::Val{$a}) = $b
+            const $inst = $instance_type($f)
+            KeywordCalls.alias(::$inst, ::Val{$a}) = $b
         end
 
         push!(q.args, newmethod)
