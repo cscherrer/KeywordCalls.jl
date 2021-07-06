@@ -1,9 +1,7 @@
 using Test, Pkg
 using BenchmarkTools
 
-@testset "No warnings on import" begin
-    @test_nowarn @eval using KeywordCalls
-end
+using KeywordCalls
 
 f(nt::NamedTuple{(:c,:b,:a)}) = nt.a^3 + nt.b^2 + nt.c
 @kwcall f(c,b,a)
