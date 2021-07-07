@@ -61,15 +61,15 @@ end
 
     if Base.VERSION ≥ v"1.6"
         @testset "No Allocation" begin
-            @test 0 == @ballocated f(a=1, b=2, c=3)
-            @test 0 == @ballocated f((a=1, b=2, c=3))
-            @test 0 == @ballocated Foo((b=1,a=2))
-            @test 0 == @ballocated g(a=1, b=2)
-            @test 0 == @ballocated g((a=1, b=2))
-            @test 0 == @ballocated g(a=1, b=2, c=3)
-            @test 0 == @ballocated g((a=1, b=2, c=3))
-            @test 0 == @ballocated f(alpha=1,b=2,c=3)
-            @test 0 == @ballocated g(beta=1, alpha=3)
+            @test 0 == @allocated f(a=1, b=2, c=3)
+            @test 0 == @allocated f((a=1, b=2, c=3))
+            @test 0 == @allocated Foo((b=1,a=2))
+            @test 0 == @allocated g(a=1, b=2)
+            @test 0 == @allocated g((a=1, b=2))
+            @test 0 == @allocated g(a=1, b=2, c=3)
+            @test 0 == @allocated g((a=1, b=2, c=3))
+            @test 0 == @allocated f(alpha=1,b=2,c=3)
+            @test 0 == @allocated g(beta=1, alpha=3)
         end
     end
 end
