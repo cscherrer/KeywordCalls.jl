@@ -62,9 +62,10 @@ function _kwcall(__module__, ex)
             return $f_esc(NamedTuple{($(argnames...),)}(nt))
         end
     end
-    
 
-    if !static_hasmethod(has_kwargs, Tuple{typeof(f)})
+    inst = instance_type(f)
+
+    if !static_hasmethod(has_kwargs, Tuple{inst})
         namedtuplemethod = quote
             @inline function $f_esc(nt::NamedTuple)
                 aliased = $alias($f, nt)
@@ -78,7 +79,7 @@ function _kwcall(__module__, ex)
 
         kwmethod = quote
             $f_esc(;kw...) = $f_esc(NamedTuple(kw))
-            KeywordCalls.has_kwargs(::typeof($f_esc)) = true
+            KeywordCalls.has_kwargs(::inst) = true
         end
 
         push!(q.args, kwmethod)
@@ -184,7 +185,8 @@ function _kwalias(f, aliasmap)
 end
 
 # See https://github.com/cscherrer/KeywordCalls.jl/issues/22
-instance_type(f::F) where {F<:Function} = F
-instance_type(f::UnionAll) = Type{f}
+@inline instance_type(f::F) where {F<:Function} = F
+@inline instance_type(f::UnionAll) = Type{f}
+
 
 end # module
