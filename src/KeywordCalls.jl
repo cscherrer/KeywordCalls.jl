@@ -54,16 +54,14 @@ function _kwcall(__module__, ex)
     _sort = KeywordCalls._sort
     instance_type = KeywordCalls.instance_type
     
-
+    inst = instance_type(f)
     q = quote
-        const inst = $instance_type($f)
+        # const $inst = $instance_type($f)
 
-        function KeywordCalls._call_in_default_order(::inst, nt::NamedTuple{($(sorted_argnames...),)})
+        function KeywordCalls._call_in_default_order(::$inst, nt::NamedTuple{($(sorted_argnames...),)})
             return $f_esc(NamedTuple{($(argnames...),)}(nt))
         end
     end
-
-    inst = instance_type(f)
 
     if !static_hasmethod(has_kwargs, Tuple{inst})
         namedtuplemethod = quote
@@ -79,7 +77,7 @@ function _kwcall(__module__, ex)
 
         kwmethod = quote
             $f_esc(;kw...) = $f_esc(NamedTuple(kw))
-            KeywordCalls.has_kwargs(::inst) = true
+            KeywordCalls.has_kwargs(::$inst) = true
         end
 
         push!(q.args, kwmethod)
