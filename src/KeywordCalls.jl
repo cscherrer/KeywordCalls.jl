@@ -56,8 +56,6 @@ function _kwcall(__module__, ex)
     
     inst = instance_type(f)
     q = quote
-        # const $inst = $instance_type($f)
-
         function KeywordCalls._call_in_default_order(::$inst, nt::NamedTuple{($(sorted_argnames...),)})
             return $f_esc(NamedTuple{($(argnames...),)}(nt))
         end
@@ -133,11 +131,11 @@ function _kwstruct(__module__, ex)
     # of the `build` method and know whether the constructor method is defined.
     if !static_hasmethod(build, Tuple{instance_type(f), Tuple{NamedTuple{((args...),)}}})
         argnames = QuoteNode.(args)
-        
+
+        inst = instance_type(f)
         new_method = quote
-            const inst = $instance_type($f_esc)
             $f_esc(nt::NamedTuple{($(argnames...),),T}) where {T} = $f_esc{($(argnames...),), T}(nt)
-            KeywordCalls.build(::inst, ::NamedTuple{($(argnames...),),T}) where {T} = true
+            KeywordCalls.build(::$inst, ::NamedTuple{($(argnames...),),T}) where {T} = true
         end
 
         push!(q.args, new_method)
@@ -159,11 +157,12 @@ declare that for the function `f`, we should consider `alpha` to be an alias for
 accordingly as a pre-processing step.
 """
 macro kwalias(f, aliasmap)
-    _kwalias(f, aliasmap)
+    _kwalias(__module__, f, aliasmap)
 end
 
-function _kwalias(f, aliasmap)
-    f = esc(f)
+function _kwalias(__module__, fsym, aliasmap)
+    f_esc = esc(fsym)
+    f = getproperty(__module__, fsym)
     q = quote end
     for pair in aliasmap.args
         # Each entry should look like `:(a => b)`
@@ -171,9 +170,9 @@ function _kwalias(f, aliasmap)
         @assert pair.args[1] == :(=>)
         (a,b) = QuoteNode.(pair.args[2:3])
 
-        @gensym inst
+        
+        inst = instance_type(f)
         newmethod = quote
-            const $inst = $instance_type($f)
             KeywordCalls.alias(::$inst, ::Val{$a}) = $b
         end
 
