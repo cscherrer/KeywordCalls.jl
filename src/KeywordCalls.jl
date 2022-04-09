@@ -183,7 +183,7 @@ end
 
 # See https://github.com/cscherrer/KeywordCalls.jl/issues/22
 @inline instance_type(::F) where {F} = F
-@inline instance_type(::UnionAll) = Type{<:T}
-@inline instance_type(::DataType) = Type{T}
+@inline instance_type(T::UnionAll) = Type{<:T}
+@inline instance_type(T::DataType) = Type{T}
 
 end # module
