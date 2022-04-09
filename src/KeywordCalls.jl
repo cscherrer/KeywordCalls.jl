@@ -182,8 +182,8 @@ function _kwalias(__module__, fsym, aliasmap)
 end
 
 # See https://github.com/cscherrer/KeywordCalls.jl/issues/22
-@inline instance_type(f::F) where {F<:Function} = F
-@inline instance_type(f::UnionAll) = Type{f}
-
+@inline instance_type(::F) where {F} = F
+@inline instance_type(::UnionAll) = Type{<:T}
+@inline instance_type(::DataType) = Type{T}
 
 end # module
