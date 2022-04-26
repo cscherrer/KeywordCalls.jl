@@ -52,9 +52,8 @@ function _kwcall(__module__, ex)
 
     alias = KeywordCalls.alias
     _sort = KeywordCalls._sort
-    instance_type = KeywordCalls.instance_type
     
-    inst = instance_type(f)
+    inst = Core.Typeof(f)
     q = quote
         function KeywordCalls._call_in_default_order(::$inst, nt::NamedTuple{($(sorted_argnames...),)})
             return $f_esc(NamedTuple{($(argnames...),)}(nt))
@@ -129,10 +128,10 @@ function _kwstruct(__module__, ex)
     # But we can fake it by creating a `build` method that's defined iff the
     # constructor has the corresponding method. Then we can check for presence
     # of the `build` method and know whether the constructor method is defined.
-    if !static_hasmethod(build, Tuple{instance_type(f), Tuple{NamedTuple{((args...),)}}})
+    if !static_hasmethod(build, Tuple{Core.Typeof(f), Tuple{NamedTuple{((args...),)}}})
         argnames = QuoteNode.(args)
 
-        inst = instance_type(f)
+        inst = Core.Typeof(f)
         new_method = quote
             $f_esc(nt::NamedTuple{($(argnames...),),T}) where {T} = $f_esc{($(argnames...),), T}(nt)
             KeywordCalls.build(::$inst, ::NamedTuple{($(argnames...),),T}) where {T} = true
@@ -171,7 +170,7 @@ function _kwalias(__module__, fsym, aliasmap)
         (a,b) = QuoteNode.(pair.args[2:3])
 
         
-        inst = instance_type(f)
+        inst = Core.Typeof(f)
         newmethod = quote
             KeywordCalls.alias(::$inst, ::Val{$a}) = $b
         end
@@ -180,10 +179,5 @@ function _kwalias(__module__, fsym, aliasmap)
     end
     return q
 end
-
-# See https://github.com/cscherrer/KeywordCalls.jl/issues/22
-@inline instance_type(f::F) where {F<:Function} = F
-@inline instance_type(f::UnionAll) = Type{f}
-
 
 end # module
