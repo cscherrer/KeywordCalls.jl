@@ -64,7 +64,7 @@ function _kwcall(__module__, __source__, ex)
     if !static_hasmethod(has_kwargs, Tuple{inst})
         namedtuplemethod = quote
             $__source__
-            @inline function $f_esc(nt::NamedTuple{N,T}) where {N,T}
+            @inline function $f_esc(nt::NamedTuple)
                 aliased = $alias($f, nt)
                 merged = mymerge($defaults, aliased)
                 sorted = $_sort(merged)
