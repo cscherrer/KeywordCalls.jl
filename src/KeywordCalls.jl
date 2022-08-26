@@ -185,4 +185,44 @@ function _kwalias(__module__, __source__, fsym, aliasmap)
     return q
 end
 
+# Copied from Base, since that internal methods might change
+Base.@pure function merge_names(an::Tuple{Vararg{Symbol}}, bn::Tuple{Vararg{Symbol}})
+    @nospecialize an bn
+    names = Symbol[an...]
+    for n in bn
+        if !Base.sym_in(n, an)
+            push!(names, n)
+        end
+    end
+    (names...,)
+end
+
+# Copied from Base, since that internal methods might change
+Base.@pure function merge_types(
+    names::Tuple{Vararg{Symbol}},
+    a::Type{<:NamedTuple},
+    b::Type{<:NamedTuple},
+)
+    @nospecialize names a b
+    bn = Base._nt_names(b)
+    return Tuple{
+        Any[
+            fieldtype(Base.sym_in(names[n], bn) ? b : a, names[n]) for n in 1:length(names)
+        ]...,
+    }
+end
+
+@generated function mymerge(a::NamedTuple{an,Ta}, b::NamedTuple{bn,Tb}) where {an,bn,Ta,Tb}
+    names = merge_names(an, bn)
+    types = merge_types(names, a, b)
+    vals = Any[
+        :(getfield($(Base.sym_in(names[n], bn) ? :b : :a), $(QuoteNode(names[n])))) for
+        n in 1:length(names)
+    ]
+    quote
+        $(Expr(:meta, :inline))
+        NamedTuple{$names,$types}(($(vals...),))::NamedTuple{$names,$types}
+    end
+end
+
 end # module
