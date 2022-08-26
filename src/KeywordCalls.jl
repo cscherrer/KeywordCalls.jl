@@ -66,7 +66,7 @@ function _kwcall(__module__, __source__, ex)
             $__source__
             @inline function $f_esc(nt::NamedTuple{N,T}) where {N,T}
                 aliased = $alias($f, nt)
-                merged = merge($defaults, aliased)
+                merged = mymerge($defaults, aliased)
                 sorted = $_sort(merged)
                 return $_call_in_default_order($f, sorted)
             end
