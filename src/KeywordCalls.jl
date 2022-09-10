@@ -2,18 +2,21 @@ module KeywordCalls
 
 using Compat
 using Tricks
+include("stablenamedtuple.jl")
 
 export @kwcall
 
-@generated _sort(nt::NamedTuple{K,T}) where {K,T} = :(NamedTuple{($(QuoteNode.(sort(collect(K)))...),)}(nt))
+@generated _sort(nt::StableNamedTuple{K,T}) where {K,T} = :(StableNamedTuple{($(QuoteNode.(sort(collect(K)))...),)}(nt))
 
 @inline alias(f,::Val{k}) where {k} = k
 
 alias(f, tup::Tuple) = alias.(f, tup)
 
-function alias(f, nt::NamedTuple{K,T}) where {K,T} 
+myvalues(nt::StableNamedTuple{N,T}) where {N,T} = Tuple(nt)::T
+
+function alias(f, nt::StableNamedTuple{K,T}) where {K,T} 
     newnames = alias(f, Val.(K))
-    NamedTuple{newnames}(values(nt))
+    StableNamedTuple{newnames}(myvalues(nt))
 end
 
 function has_kwargs end
@@ -25,12 +28,12 @@ function _call_in_default_order end
 """
     @kwcall f(b,a,c=0)
 
-Declares that any call `f(::NamedTuple{N})` with `sort(N) == (:a,:b,:c)`
+Declares that any call `f(::StableNamedTuple{N})` with `sort(N) == (:a,:b,:c)`
 should be dispatched to the method already defined on
-`f(::NamedTuple{(:b,:a,:c)})`
+`f(::StableNamedTuple{(:b,:a,:c)})`
 
 Note that in the example `@kwcall f(b,a,c=0)`, the macro checks for existence of
-`f(::NamedTuple)` and `f(; kwargs...)` methods, and only creates new ones if
+`f(::StableNamedTuple)` and `f(; kwargs...)` methods, and only creates new ones if
 these don't already exist.
 """
 macro kwcall(ex)
@@ -56,15 +59,15 @@ function _kwcall(__module__, __source__, ex)
     inst = Core.Typeof(f)
     q = quote
         $__source__
-        function KeywordCalls._call_in_default_order(::$inst, nt::NamedTuple{($(sorted_argnames...),),T}) where T
-            return $f_esc(NamedTuple{($(argnames...),)}(nt))
+        function KeywordCalls._call_in_default_order(::$inst, nt::StableNamedTuple{($(sorted_argnames...),),T}) where T
+            return $f_esc(StableNamedTuple{($(argnames...),)}(nt))
         end
     end
 
     if !static_hasmethod(has_kwargs, Tuple{inst})
         namedtuplemethod = quote
             $__source__
-            @inline function $f_esc(nt::NamedTuple)
+            @inline function $f_esc(nt::StableNamedTuple{N,T}) where {N,T}
                 aliased = $alias($f, nt)
                 merged = mymerge($defaults, aliased)
                 sorted = $_sort(merged)
@@ -76,7 +79,7 @@ function _kwcall(__module__, __source__, ex)
 
         kwmethod = quote
             $__source__
-            $f_esc(;kw...) = $f_esc(NamedTuple(kw))
+            $f_esc(;kw...) = $f_esc(StableNamedTuple(kw))
             KeywordCalls.has_kwargs(::$inst) = true
         end
 
@@ -89,7 +92,7 @@ end
 function _parse_args(args)
     # get args dropping the tail of any expressions
     _args = map(_get_arg, args)
-    # get the `key = val` defaults as a NamedTuple quote
+    # get the `key = val` defaults as a StableNamedTuple quote
     _defaults = :((;$(filter(a -> a isa Expr, args)...)))
     return _args, _defaults
 end
@@ -104,12 +107,12 @@ export @kwstruct
 
 Equivalent to `@kwcall Foo(b,a,c)` plus a definition
 
-    Foo(nt::NamedTuple{(:b, :a, :c), T}) where {T} = Foo{(:b, :a, :c), T}(nt)
+    Foo(nt::StableNamedTuple{(:b, :a, :c), T}) where {T} = Foo{(:b, :a, :c), T}(nt)
 
 Note that this assumes existence of a `Foo` struct of the form
 
     Foo{N,T} [<: SomeAbstractTypeIfYouLike]
-        someFieldName :: NamedTuple{N,T}
+        someFieldName :: StableNamedTuple{N,T}
     end
 
 NOTE: Default values (as in `@kwcall`) currently do not work for `@kwstruct`.
@@ -131,14 +134,14 @@ function _kwstruct(__module__, __source__, ex)
     # But we can fake it by creating a `build` method that's defined iff the
     # constructor has the corresponding method. Then we can check for presence
     # of the `build` method and know whether the constructor method is defined.
-    if !static_hasmethod(build, Tuple{Core.Typeof(f), Tuple{NamedTuple{((args...),)}}})
+    if !static_hasmethod(build, Tuple{Core.Typeof(f), Tuple{StableNamedTuple{((args...),)}}})
         argnames = QuoteNode.(args)
 
         inst = Core.Typeof(f)
         new_method = quote
             $__source__
-            $f_esc(nt::NamedTuple{($(argnames...),),T}) where {T} = $f_esc{($(argnames...),), T}(nt)
-            KeywordCalls.build(::$inst, ::NamedTuple{($(argnames...),),T}) where {T} = true
+            $f_esc(nt::StableNamedTuple{($(argnames...),),T}) where {T} = $f_esc{($(argnames...),), T}(nt)
+            KeywordCalls.build(::$inst, ::StableNamedTuple{($(argnames...),),T}) where {T} = true
         end
 
         push!(q.args, new_method)
@@ -183,46 +186,6 @@ function _kwalias(__module__, __source__, fsym, aliasmap)
         push!(q.args, newmethod)
     end
     return q
-end
-
-# Copied from Base, since that internal methods might change
-Base.@pure function merge_names(an::Tuple{Vararg{Symbol}}, bn::Tuple{Vararg{Symbol}})
-    @nospecialize an bn
-    names = Symbol[an...]
-    for n in bn
-        if !Base.sym_in(n, an)
-            push!(names, n)
-        end
-    end
-    (names...,)
-end
-
-# Copied from Base, since that internal methods might change
-Base.@pure function merge_types(
-    names::Tuple{Vararg{Symbol}},
-    a::Type{<:NamedTuple},
-    b::Type{<:NamedTuple},
-)
-    @nospecialize names a b
-    bn = Base._nt_names(b)
-    return Tuple{
-        Any[
-            fieldtype(Base.sym_in(names[n], bn) ? b : a, names[n]) for n in 1:length(names)
-        ]...,
-    }
-end
-
-@generated function mymerge(a::NamedTuple{an,Ta}, b::NamedTuple{bn,Tb}) where {an,bn,Ta,Tb}
-    names = merge_names(an, bn)
-    types = merge_types(names, a, b)
-    vals = Any[
-        :(getfield($(Base.sym_in(names[n], bn) ? :b : :a), $(QuoteNode(names[n])))) for
-        n in 1:length(names)
-    ]
-    quote
-        $(Expr(:meta, :inline))
-        NamedTuple{$names,$types}(($(vals...),))::NamedTuple{$names,$types}
-    end
 end
 
 end # module
