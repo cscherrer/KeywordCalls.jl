@@ -7,12 +7,12 @@ export @kwcall
 
 @generated _sort(nt::NamedTuple{K,T}) where {K,T} = :(NamedTuple{($(QuoteNode.(sort(collect(K)))...),)}(nt))
 
-@inline alias(f,::Val{k}) where {k} = k
+@inline alias(f,::Type{Val{k}}) where {k} = k
 
 alias(f, tup::Tuple) = alias.(f, tup)
 
 function alias(f, nt::NamedTuple{K,T}) where {K,T} 
-    newnames = alias(f, Val.(K))
+    newnames = tuple((alias(f, Val{k}) for k in K)...) 
     NamedTuple{newnames}(values(nt))
 end
 
@@ -177,7 +177,7 @@ function _kwalias(__module__, __source__, fsym, aliasmap)
         inst = Core.Typeof(f)
         newmethod = quote
             $__source__
-            KeywordCalls.alias(::$inst, ::Val{$a}) = $b
+            KeywordCalls.alias(::$inst, ::Type{Val{$a}}) = $b
         end
 
         push!(q.args, newmethod)
