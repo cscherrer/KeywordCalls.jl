@@ -8,7 +8,7 @@ Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"
 Tricks = "410a4b4d-49e4-4fbc-ab6d-cb71b17b3775"
 
 [compat]
-Compat = "3.28"
+Compat = "3.28, 4"
 Tricks = "0.1"
 julia = "1"
 

@@ -2,18 +2,21 @@ module KeywordCalls
 
 using Compat
 using Tricks
+include("stablenamedtuple.jl")
 
 export @kwcall
 
-@generated _sort(nt::NamedTuple{K}) where {K} = :(NamedTuple{($(QuoteNode.(sort(collect(K)))...),)}(nt))
+@generated _sort(nt::StableNamedTuple{K,T}) where {K,T} = :(StableNamedTuple{($(QuoteNode.(sort(collect(K)))...),)}(nt))
 
 @inline alias(f,::Val{k}) where {k} = k
 
 alias(f, tup::Tuple) = alias.(f, tup)
 
-function alias(f, nt::NamedTuple{K}) where {K} 
+myvalues(nt::StableNamedTuple{N,T}) where {N,T} = Tuple(nt)::T
+
+function alias(f, nt::StableNamedTuple{K,T}) where {K,T} 
     newnames = alias(f, Val.(K))
-    NamedTuple{newnames}(values(nt))
+    StableNamedTuple{newnames}(myvalues(nt))
 end
 
 function has_kwargs end
@@ -25,19 +28,19 @@ function _call_in_default_order end
 """
     @kwcall f(b,a,c=0)
 
-Declares that any call `f(::NamedTuple{N})` with `sort(N) == (:a,:b,:c)`
+Declares that any call `f(::StableNamedTuple{N})` with `sort(N) == (:a,:b,:c)`
 should be dispatched to the method already defined on
-`f(::NamedTuple{(:b,:a,:c)})`
+`f(::StableNamedTuple{(:b,:a,:c)})`
 
 Note that in the example `@kwcall f(b,a,c=0)`, the macro checks for existence of
-`f(::NamedTuple)` and `f(; kwargs...)` methods, and only creates new ones if
+`f(::StableNamedTuple)` and `f(; kwargs...)` methods, and only creates new ones if
 these don't already exist.
 """
 macro kwcall(ex)
-    _kwcall(__module__, ex).q
+    _kwcall(__module__, __source__, ex).q
 end
 
-function _kwcall(__module__, ex)
+function _kwcall(__module__, __source__, ex)
     @assert Meta.isexpr(ex, :call)
     f_sym = ex.args[1]
     f_esc = esc(f_sym)
@@ -55,16 +58,18 @@ function _kwcall(__module__, ex)
     
     inst = Core.Typeof(f)
     q = quote
-        function KeywordCalls._call_in_default_order(::$inst, nt::NamedTuple{($(sorted_argnames...),)})
-            return $f_esc(NamedTuple{($(argnames...),)}(nt))
+        $__source__
+        function KeywordCalls._call_in_default_order(::$inst, nt::StableNamedTuple{($(sorted_argnames...),),T}) where T
+            return $f_esc(StableNamedTuple{($(argnames...),)}(nt))
         end
     end
 
     if !static_hasmethod(has_kwargs, Tuple{inst})
         namedtuplemethod = quote
-            @inline function $f_esc(nt::NamedTuple)
+            $__source__
+            @inline function $f_esc(nt::StableNamedTuple{N,T}) where {N,T}
                 aliased = $alias($f, nt)
-                merged = merge($defaults, aliased)
+                merged = mymerge($defaults, aliased)
                 sorted = $_sort(merged)
                 return $_call_in_default_order($f, sorted)
             end
@@ -73,7 +78,8 @@ function _kwcall(__module__, ex)
         push!(q.args, namedtuplemethod)
 
         kwmethod = quote
-            $f_esc(;kw...) = $f_esc(NamedTuple(kw))
+            $__source__
+            $f_esc(;kw...) = $f_esc(StableNamedTuple(kw))
             KeywordCalls.has_kwargs(::$inst) = true
         end
 
@@ -86,7 +92,7 @@ end
 function _parse_args(args)
     # get args dropping the tail of any expressions
     _args = map(_get_arg, args)
-    # get the `key = val` defaults as a NamedTuple quote
+    # get the `key = val` defaults as a StableNamedTuple quote
     _defaults = :((;$(filter(a -> a isa Expr, args)...)))
     return _args, _defaults
 end
@@ -101,12 +107,12 @@ export @kwstruct
 
 Equivalent to `@kwcall Foo(b,a,c)` plus a definition
 
-    Foo(nt::NamedTuple{(:b, :a, :c), T}) where {T} = Foo{(:b, :a, :c), T}(nt)
+    Foo(nt::StableNamedTuple{(:b, :a, :c), T}) where {T} = Foo{(:b, :a, :c), T}(nt)
 
 Note that this assumes existence of a `Foo` struct of the form
 
     Foo{N,T} [<: SomeAbstractTypeIfYouLike]
-        someFieldName :: NamedTuple{N,T}
+        someFieldName :: StableNamedTuple{N,T}
     end
 
 NOTE: Default values (as in `@kwcall`) currently do not work for `@kwstruct`.
@@ -114,11 +120,11 @@ They can work at the REPL, but this seems to be because of a world age issue.
 This feature may be supported again in a future release.
 """
 macro kwstruct(ex)
-    _kwstruct(__module__, ex)
+    _kwstruct(__module__, __source__, ex)
 end
 
-function _kwstruct(__module__, ex)
-    setup = _kwcall(__module__, ex)
+function _kwstruct(__module__, __source__, ex)
+    setup = _kwcall(__module__, __source__, ex)
     (f_sym, args, defaults, q) = setup.f_sym, setup.args, setup.defaults,  setup.q
     f_esc = esc(f_sym)
     f = getproperty(__module__, f_sym)
@@ -128,13 +134,14 @@ function _kwstruct(__module__, ex)
     # But we can fake it by creating a `build` method that's defined iff the
     # constructor has the corresponding method. Then we can check for presence
     # of the `build` method and know whether the constructor method is defined.
-    if !static_hasmethod(build, Tuple{Core.Typeof(f), Tuple{NamedTuple{((args...),)}}})
+    if !static_hasmethod(build, Tuple{Core.Typeof(f), Tuple{StableNamedTuple{((args...),)}}})
         argnames = QuoteNode.(args)
 
         inst = Core.Typeof(f)
         new_method = quote
-            $f_esc(nt::NamedTuple{($(argnames...),),T}) where {T} = $f_esc{($(argnames...),), T}(nt)
-            KeywordCalls.build(::$inst, ::NamedTuple{($(argnames...),),T}) where {T} = true
+            $__source__
+            $f_esc(nt::StableNamedTuple{($(argnames...),),T}) where {T} = $f_esc{($(argnames...),), T}(nt)
+            KeywordCalls.build(::$inst, ::StableNamedTuple{($(argnames...),),T}) where {T} = true
         end
 
         push!(q.args, new_method)
@@ -156,13 +163,13 @@ declare that for the function `f`, we should consider `alpha` to be an alias for
 accordingly as a pre-processing step.
 """
 macro kwalias(f, aliasmap)
-    _kwalias(__module__, f, aliasmap)
+    _kwalias(__module__, __source__, f, aliasmap)
 end
 
-function _kwalias(__module__, fsym, aliasmap)
+function _kwalias(__module__, __source__, fsym, aliasmap)
     f_esc = esc(fsym)
     f = getproperty(__module__, fsym)
-    q = quote end
+    q = quote $__source__ end
     for pair in aliasmap.args
         # Each entry should look like `:(a => b)`
         @assert pair.head == :call
@@ -172,6 +179,7 @@ function _kwalias(__module__, fsym, aliasmap)
         
         inst = Core.Typeof(f)
         newmethod = quote
+            $__source__
             KeywordCalls.alias(::$inst, ::Val{$a}) = $b
         end
 
