@@ -5,14 +5,14 @@ using Tricks
 
 export @kwcall
 
-@generated _sort(nt::NamedTuple{K}) where {K} = :(NamedTuple{($(QuoteNode.(sort(collect(K)))...),)}(nt))
+@generated _sort(nt::NamedTuple{K,T}) where {K,T} = :(NamedTuple{($(QuoteNode.(sort(collect(K)))...),)}(nt))
 
-@inline alias(f,::Val{k}) where {k} = k
+@inline alias(f,::Type{Val{k}}) where {k} = k
 
 alias(f, tup::Tuple) = alias.(f, tup)
 
-function alias(f, nt::NamedTuple{K}) where {K} 
-    newnames = alias(f, Val.(K))
+function alias(f, nt::NamedTuple{K,T}) where {K,T} 
+    newnames = tuple((alias(f, Val{k}) for k in K)...) 
     NamedTuple{newnames}(values(nt))
 end
 
@@ -34,10 +34,10 @@ Note that in the example `@kwcall f(b,a,c=0)`, the macro checks for existence of
 these don't already exist.
 """
 macro kwcall(ex)
-    _kwcall(__module__, ex).q
+    _kwcall(__module__, __source__, ex).q
 end
 
-function _kwcall(__module__, ex)
+function _kwcall(__module__, __source__, ex)
     @assert Meta.isexpr(ex, :call)
     f_sym = ex.args[1]
     f_esc = esc(f_sym)
@@ -55,16 +55,18 @@ function _kwcall(__module__, ex)
     
     inst = Core.Typeof(f)
     q = quote
-        function KeywordCalls._call_in_default_order(::$inst, nt::NamedTuple{($(sorted_argnames...),)})
+        $__source__
+        function KeywordCalls._call_in_default_order(::$inst, nt::NamedTuple{($(sorted_argnames...),),T}) where T
             return $f_esc(NamedTuple{($(argnames...),)}(nt))
         end
     end
 
     if !static_hasmethod(has_kwargs, Tuple{inst})
         namedtuplemethod = quote
+            $__source__
             @inline function $f_esc(nt::NamedTuple)
                 aliased = $alias($f, nt)
-                merged = merge($defaults, aliased)
+                merged = mymerge($defaults, aliased)
                 sorted = $_sort(merged)
                 return $_call_in_default_order($f, sorted)
             end
@@ -73,6 +75,7 @@ function _kwcall(__module__, ex)
         push!(q.args, namedtuplemethod)
 
         kwmethod = quote
+            $__source__
             $f_esc(;kw...) = $f_esc(NamedTuple(kw))
             KeywordCalls.has_kwargs(::$inst) = true
         end
@@ -114,11 +117,11 @@ They can work at the REPL, but this seems to be because of a world age issue.
 This feature may be supported again in a future release.
 """
 macro kwstruct(ex)
-    _kwstruct(__module__, ex)
+    _kwstruct(__module__, __source__, ex)
 end
 
-function _kwstruct(__module__, ex)
-    setup = _kwcall(__module__, ex)
+function _kwstruct(__module__, __source__, ex)
+    setup = _kwcall(__module__, __source__, ex)
     (f_sym, args, defaults, q) = setup.f_sym, setup.args, setup.defaults,  setup.q
     f_esc = esc(f_sym)
     f = getproperty(__module__, f_sym)
@@ -133,6 +136,7 @@ function _kwstruct(__module__, ex)
 
         inst = Core.Typeof(f)
         new_method = quote
+            $__source__
             $f_esc(nt::NamedTuple{($(argnames...),),T}) where {T} = $f_esc{($(argnames...),), T}(nt)
             KeywordCalls.build(::$inst, ::NamedTuple{($(argnames...),),T}) where {T} = true
         end
@@ -156,13 +160,13 @@ declare that for the function `f`, we should consider `alpha` to be an alias for
 accordingly as a pre-processing step.
 """
 macro kwalias(f, aliasmap)
-    _kwalias(__module__, f, aliasmap)
+    _kwalias(__module__, __source__, f, aliasmap)
 end
 
-function _kwalias(__module__, fsym, aliasmap)
+function _kwalias(__module__, __source__, fsym, aliasmap)
     f_esc = esc(fsym)
     f = getproperty(__module__, fsym)
-    q = quote end
+    q = quote $__source__ end
     for pair in aliasmap.args
         # Each entry should look like `:(a => b)`
         @assert pair.head == :call
@@ -172,12 +176,53 @@ function _kwalias(__module__, fsym, aliasmap)
         
         inst = Core.Typeof(f)
         newmethod = quote
-            KeywordCalls.alias(::$inst, ::Val{$a}) = $b
+            $__source__
+            KeywordCalls.alias(::$inst, ::Type{Val{$a}}) = $b
         end
 
         push!(q.args, newmethod)
     end
     return q
+end
+
+# Copied from Base, since that internal methods might change
+Base.@pure function merge_names(an::Tuple{Vararg{Symbol}}, bn::Tuple{Vararg{Symbol}})
+    @nospecialize an bn
+    names = Symbol[an...]
+    for n in bn
+        if !Base.sym_in(n, an)
+            push!(names, n)
+        end
+    end
+    (names...,)
+end
+
+# Copied from Base, since that internal methods might change
+Base.@pure function merge_types(
+    names::Tuple{Vararg{Symbol}},
+    a::Type{<:NamedTuple},
+    b::Type{<:NamedTuple},
+)
+    @nospecialize names a b
+    bn = Base._nt_names(b)
+    return Tuple{
+        Any[
+            fieldtype(Base.sym_in(names[n], bn) ? b : a, names[n]) for n in 1:length(names)
+        ]...,
+    }
+end
+
+@generated function mymerge(a::NamedTuple{an,Ta}, b::NamedTuple{bn,Tb}) where {an,bn,Ta,Tb}
+    names = merge_names(an, bn)
+    types = merge_types(names, a, b)
+    vals = Any[
+        :(getfield($(Base.sym_in(names[n], bn) ? :b : :a), $(QuoteNode(names[n])))) for
+        n in 1:length(names)
+    ]
+    quote
+        $(Expr(:meta, :inline))
+        NamedTuple{$names,$types}(($(vals...),))::NamedTuple{$names,$types}
+    end
 end
 
 end # module
