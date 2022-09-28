@@ -12,6 +12,15 @@ KeywordCalls.jl lets us do this, and allows specification of a "preferred orderi
 
 **On Julia 1.6, this can be done with no allocation!** This is included in the unit tests. Unfortunately, the current implementation leads to allcoation in Julia 1.4 and 1.5. We hope this can be improved for better backward-compatibility, but for now we recommend using 1.6 if possible.
 
+KeywordCalls is very light weight:
+```julia
+julia> @time_imports using KeywordCalls
+[ Info: Precompiling KeywordCalls [4d827475-d3e4-43d6-abe3-9688362ede9f]
+      0.3 ms  Compat
+      0.3 ms  Tricks
+      0.2 ms  KeywordCalls
+```
+
 ## `@kwcall`
 
 If we define
